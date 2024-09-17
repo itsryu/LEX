@@ -1,7 +1,11 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "lexer.h"
+
+static void saveFile(Token *token);
+static void freeToken(Token *token);
 
 int main(int argc, char** argv) {
     if(argv[1] == NULL) {
@@ -23,12 +27,26 @@ int main(int argc, char** argv) {
                 printf("File not found:\n\t--file <file>\n");
                 return 1;
             } else {
-                output = fopen("output.lex", "w");
-                
-                // TODO: Implement lexer:
+                Token* token;
+                output = fopen("./output.lex", "w");
+
+                while(strcmp((token = lexerAnalysis())->name, "EOF") != 0 && token != NULL) {
+                    printf("<%s, %s> : <%d, %d>\n", token->name, token->word, token->row, token->column);
+                    saveFile(token);
+                }
             }
         }
     }
-
+    
     return 0;
+}
+
+static void saveFile(Token *token) {
+    fprintf(output, "<%s, %s> : <%d, %d>\n", token->name, token->word, token->row, token->column);
+}
+
+static void freeToken(Token *token) {
+    free(token->name);
+    free(token->word);
+    free(token);
 }
