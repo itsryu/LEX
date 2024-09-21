@@ -215,14 +215,17 @@ static int isReservedWord(const char* word) {
 static int isReservedType(const char* word) {
 	if(word == NULL) return 0;
 
-	static const char* reserverdWords[] = {
-		RESERVED_TYPE_INTEGER, RESERVED_TYPE_REAL, RESERVED_TYPE_CHAR, RESERVED_TYPE_STRING,
-		RESERVED_TYPE_DOUBLE, RESERVED_TYPE_BYTE, RESERVED_TYPE_WORD, RESERVED_TYPE_LONGINT,
-		RESERVED_TYPE_SHORTINT, RESERVED_TYPE_SINGLE, RESERVED_TYPE_EXTENDED, RESERVED_TYPE_COMP,
-		RESERVED_TYPE_CURRENCY
+    static const char* reserverdWords[] = {
+        RESERVED_TYPE_INTEGER,  RESERVED_TYPE_REAL,
+        RESERVED_TYPE_CHAR,     RESERVED_TYPE_STRING,
+        RESERVED_TYPE_DOUBLE,   RESERVED_TYPE_BYTE,
+        RESERVED_TYPE_WORD,     RESERVED_TYPE_LONGINT,
+        RESERVED_TYPE_SHORTINT, RESERVED_TYPE_SINGLE,
+        RESERVED_TYPE_EXTENDED, RESERVED_TYPE_COMP,
+        RESERVED_TYPE_CURRENCY
 	};
 
-	static const int reservedWordsSize = sizeof(reserverdWords) / sizeof(char*);
+    static const int reservedWordsSize = sizeof(reserverdWords) / sizeof(char*);
 
 	for(int i = 0; i < reservedWordsSize; i++) {
 		if(strcmp(word, reserverdWords[i]) == 0) return 1;
