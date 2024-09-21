@@ -5,7 +5,6 @@
 #include "lexer.h"
 
 static void saveFile(Token *token);
-static void freeToken(Token *token);
 
 int main(int argc, char** argv) {
     if(argv[1] == NULL) {
@@ -34,6 +33,8 @@ int main(int argc, char** argv) {
                     printf("<%s, %s> : <%d, %d>\n", token->name, token->word, token->row, token->column);
                     saveFile(token);
                 }
+
+                free(token);
             }
         }
     }
@@ -43,10 +44,4 @@ int main(int argc, char** argv) {
 
 static void saveFile(Token *token) {
     fprintf(output, "<%s, %s> : <%d, %d>\n", token->name, token->word, token->row, token->column);
-}
-
-static void freeToken(Token *token) {
-    free(token->name);
-    free(token->word);
-    free(token);
 }
