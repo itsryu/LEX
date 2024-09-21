@@ -10,166 +10,251 @@ static void addWord(char** word, int* i, const char ch);
 static Token* createToken(char* name, char* word, int row, int column);
 static void showError(const char* message, const int row, const int column);
 static int isReservedWord(const char* word);
+static int isReservedType(const char* word);
+static int isReservedOperator(const char* word);
 
 Token* lexerAnalysis() {
-  char* word = (char*)malloc(sizeof(char));
-  int state = 0, i = 0;
+	char* word = (char*) malloc(sizeof(char));
+	int state = 0, i = 0;
 
-  while ((ch = fgetc(input)) != EOF) {
-    column++;
+	while((ch = fgetc(input)) != EOF) {
+		column++;
 
-    switch (state) {
-      // q0:
-      // Estado inicial, identificando espaços em branco, valores numéricos,
-      // valores alfanuméricos e valores alfabéticos:
-      case 0: {
-        // Identificando espaços em branco:
-        if (ch == SPACE || ch == TAB || ch == NEW_LINE) {
-          if (ch == NEW_LINE) {
-            row++;
-            column = 0;
-          }
+		switch(state) {
+			// q0:
+			// Estado inicial, identificando espaços em branco, valores numéricos,
+			// valores alfanuméricos e valores alfabéticos:
+			case 0:
+				{
+					// Identificando espaços em branco:
+					if(ch == SPACE || ch == TAB || ch == NEW_LINE) {
+						if(ch == NEW_LINE) {
+							row++;
+							column = 0;
+						}
 
-          break;
-        }
+						break;
+					}
 
-        // Identificando valores numéricos:s
-        if (ch >= '0' && ch <= '9') {
-          addWord(&word, &i, ch);
-          state = 2;
+					// Identificando valores numéricos:
+					if(ch >= '0' && ch <= '9') {
+						addWord(&word, &i, ch);
+						state = 2;
 
-          break;
-        }
+						break;
+					}
 
-        // Identificando valores alfanuméricos:
-        if (ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9') {
-          addWord(&word, &i, ch);
-          state = 1;
 
-          break;
-        }
+					// Identificando valores alfanuméricos:
+					if(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9') {
+						addWord(&word, &i, ch);
+						state = 1;
 
-        char message[50] = "Unknown character: '";
-        message[20] = ch;
-        strcat(message, "'");
+						break;
+					}
 
-        showError(message, row, column);
+					// Identificando operadores:
+					if(ch == OP_SUM || ch == OP_SUB || ch == OP_DIV || ch == OP_MUL || ch == OP_LT || ch == OP_GT) {
+						addWord(&word, &i, ch);
 
-        break;
-      }
+						if(ch == OP_SUM || ch == OP_SUB || ch == OP_DIV || ch == OP_MUL) {
+							Token* token = createToken("Binary Arithmetic Operator", word, row, column);
+							return token;
+						} else {
+							state = 4; // Identificando operadores de '<=' e '>=':
+						}
 
-      // q1:
-      // Lidando com valores alfanuméricos e indentificando palavras reservadas
-      // e identificadores:
-      case 1: {
-        if (ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' ||ch >= '0' && ch <= '9') {
-          addWord(&word, &i, ch);
-        } else {
-          ungetc(ch, input);
-          column--;
+						break;
+					}
 
-          if (isReservedWord(word)) {
-            Token* token = createToken("Reserved-word", word, row, column);
-            return token;
-          } else {
-            Token* token = createToken("Identifier", word, row, column);
-            return token;
-          }
-        }
+					char message[50] = "Unknown character: '";
+					message[20] = ch;
+					strcat(message, "'");
 
-        break;
-      }
+					showError(message, row, column);
 
-      // q2:
-      // Lidando com números inteiros e identificando possíveis números reais:
-      case 2: {
-        if (ch >= '0' && ch <= '9') {
-          addWord(&word, &i, ch);
-        } else if (ch == '.') {
-          addWord(&word, &i, ch);
-          state = 3;
-        } else {
-          ungetc(ch, input);
-          column--;
+					break;
+				}
 
-          Token* token = createToken("Integer value", word, row, column);
-          return token;
-        }
+			// q1:
+			// Lidando com valores alfanuméricos e indentificando palavras reservadas
+			// e identificadores:
+			case 1:
+				{
+					if(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9') {
+						addWord(&word, &i, ch);
+					} else {
+						ungetc(ch, input);
+						column--;
 
-        break;
-      }
+						if(isReservedWord(word)) {
+							Token* token = createToken("Reserved-word", word, row, column);
+							return token;
+						} else if(isReservedType(word)) {
+							Token* token = createToken("Reserved-type", word, row, column);
+							return token;
+						} else if(isReservedOperator(word)) {
+							Token* token = createToken("Reserved-operator", word, row, column);
+							return token;
+						} else {
+							Token* token = createToken("Identifier", word, row, column);
+							return token;
+						}
+					}
 
-      // q3:
-      // Lidando com números reais:
-      case 3: {
-        if (ch >= '0' && ch <= '9') {
-          addWord(&word, &i, ch);
-        } else {
-          ungetc(ch, input);
-          column--;
+					break;
+				}
 
-          Token* token = createToken("Real value", word, row, column);
-          return token;
-        }
+			// q2:
+			// Lidando com números inteiros e identificando possíveis números reais:
+			case 2:
+				{
+					if(ch >= '0' && ch <= '9') {
+						addWord(&word, &i, ch);
+					} else if(ch == SMB_DOT) {
+						addWord(&word, &i, ch);
+						state = 3;
+					} else {
+						ungetc(ch, input);
+						column--;
 
-        break;
-      }
+						Token* token = createToken("Integer value", word, row, column);
+						return token;
+					}
 
-      default: {
-        showError("Unknown state", row, column);
+					break;
+				}
 
-        break;
-      }
-    }
-  }
+			// q3:
+			// Lidando com números reais:
+			case 3:
+				{
+					if(ch >= '0' && ch <= '9') {
+						addWord(&word, &i, ch);
+					} else {
+						ungetc(ch, input);
+						column--;
 
-  free(word);
-  Token* token = createToken("EOF", "EOF", row, column);
+						Token* token = createToken("Real value", word, row, column);
+						return token;
+					}
 
-  return token;
+					break;
+				}
+
+			// q6:
+			// Lidando com operadores de menor ou igual e maior ou igual:
+			case 4:
+				{
+					if(ch == OP_EQU) {
+						addWord(&word, &i, ch);
+					} else {
+						ungetc(ch, input);
+						column--;
+					}
+
+					Token* token = createToken("Relational Operator", word, row, column);
+					return token;
+
+					break;
+				}
+
+			default:
+				{
+					showError("Unknown state", row, column);
+
+					break;
+				}
+		}
+	}
+
+	free(word);
+	Token* token = createToken("EOF", "EOF", row, column);
+
+	return token;
 }
 
 // Exibe um erro léxico:
 static void showError(const char* message, const int row, const int column) {
-  printf("LexicalError: %s at %d:%d\n", message, row, column);
-  fprintf(output, "LexicalError: %s at %d:%d\n", message, row, column);
+	printf("LexicalError: %s at %d:%d\n", message, row, column);
+	fprintf(output, "LexicalError: %s at %d:%d\n", message, row, column);
 }
 
 // Adiciona um caractere a uma palavra
 static void addWord(char** word, int* i, const char ch) {
-  *word = (char*)realloc(*word, sizeof(char) * (*i + 2));
-  (*word)[(*i)++] = ch;
-  (*word)[*i] = '\0';
+	*word = (char*) realloc(*word, sizeof(char) * (*i + 2));
+	(*word)[(*i)++] = ch;
+	(*word)[*i] = '\0';
 }
 
 // Verifica se uma palavra é reservada:
 static int isReservedWord(const char* word) {
-  if (word == NULL) return 0;
+	if(word == NULL) return 0;
 
-  static const char* reserverdWords[] = {
-      RESERVED_WORD_PROGRAM, RESERVED_WORD_VAR,  RESERVED_WORD_BEGIN,
-      RESERVED_WORD_END,     RESERVED_WORD_IF,   RESERVED_WORD_ELSE,
-      RESERVED_WORD_THEN,    RESERVED_WORD_DO,   RESERVED_WORD_WHILE,
-      RESERVED_TYPE_INTEGER, RESERVED_TYPE_REAL,
-  };
+	static const char* reserverdWords[] = {
+		RESERVED_WORD_PROGRAM, RESERVED_WORD_VAR,  RESERVED_WORD_BEGIN,
+		RESERVED_WORD_END,     RESERVED_WORD_IF,   RESERVED_WORD_ELSE,
+		RESERVED_WORD_THEN,    RESERVED_WORD_DO,   RESERVED_WORD_WHILE,
+		RESERVED_WORD_FOR,     RESERVED_WORD_TO,   RESERVED_WORD_DOWNTO,
+		RESERVED_WORD_REPEAT,  RESERVED_WORD_UNTIL, RESERVED_WORD_CASE,
+		RESERVED_WORD_OF,      RESERVED_WORD_FUNCTION, RESERVED_WORD_PROCEDURE,
+		RESERVED_WORD_ARRAY,   RESERVED_WORD_RECORD, RESERVED_WORD_CONST,
+		RESERVED_WORD_TYPE,    RESERVED_WORD_FILE, RESERVED_WORD_SET,
+		RESERVED_WORD_GOTO,    RESERVED_WORD_WITH, RESERVED_WORD_IN
+	};
 
-  static const int reservedWordsSize = sizeof(reserverdWords) / sizeof(char*);
+	static const int reservedWordsSize = sizeof(reserverdWords) / sizeof(char*);
 
-  for (int i = 0; i < reservedWordsSize; i++) {
-    if (strcmp(word, reserverdWords[i]) == 0) return 1;
-  }
+	for(int i = 0; i < reservedWordsSize; i++) {
+		if(strcmp(word, reserverdWords[i]) == 0) return 1;
+	}
 
-  return 0;
+	return 0;
+}
+
+static int isReservedType(const char* word) {
+	if(word == NULL) return 0;
+
+	static const char* reserverdWords[] = {
+		RESERVED_TYPE_INTEGER, RESERVED_TYPE_REAL, RESERVED_TYPE_CHAR, RESERVED_TYPE_STRING,
+		RESERVED_TYPE_DOUBLE, RESERVED_TYPE_BYTE, RESERVED_TYPE_WORD, RESERVED_TYPE_LONGINT,
+		RESERVED_TYPE_SHORTINT, RESERVED_TYPE_SINGLE, RESERVED_TYPE_EXTENDED, RESERVED_TYPE_COMP,
+		RESERVED_TYPE_CURRENCY
+	};
+
+	static const int reservedWordsSize = sizeof(reserverdWords) / sizeof(char*);
+
+	for(int i = 0; i < reservedWordsSize; i++) {
+		if(strcmp(word, reserverdWords[i]) == 0) return 1;
+	}
+
+	return 0;
+}
+
+static int isReservedOperator(const char* word) {
+	if(word == NULL) return 0;
+
+	static const char* reserverdWords[] = {
+		RESERVED_OP_NOT, RESERVED_OP_AND, RESERVED_OP_OR, RESERVED_OP_MOD
+	};
+
+	static const int reservedWordsSize = sizeof(reserverdWords) / sizeof(char*);
+
+	for(int i = 0; i < reservedWordsSize; i++) {
+		if(strcmp(word, reserverdWords[i]) == 0) return 1;
+	}
+
+	return 0;
 }
 
 // Cria um token:
 static Token* createToken(char* name, char* word, int row, int column) {
-  Token* token = (Token*)malloc(sizeof(Token));
+	Token* token = (Token*) malloc(sizeof(Token));
 
-  token->name = name;
-  token->word = word;
-  token->row = row;
-  token->column = column;
+	token->name = name;
+	token->word = word;
+	token->row = row;
+	token->column = column;
 
-  return token;
+	return token;
 }

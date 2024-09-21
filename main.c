@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
                 output = fopen("./output.lex", "w");
 
                 while(strcmp((token = lexerAnalysis())->name, "EOF") != 0 && token != NULL) {
-                    printf("<%s, %s> : <%d, %d>\n", token->name, token->word, token->row, token->column);
+                    printf("<%s, '%s'> : <%d, %d>\n", token->name, token->word, token->row, token->column);
                     saveFile(token);
                 }
 
@@ -43,5 +43,5 @@ int main(int argc, char** argv) {
 }
 
 static void saveFile(Token *token) {
-    fprintf(output, "<%s, %s> : <%d, %d>\n", token->name, token->word, token->row, token->column);
+    fprintf(output, "<%s, '%s'> : <%d, %d>\n", token->name, token->word, token->row, token->column);
 }
