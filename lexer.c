@@ -22,11 +22,11 @@ Token* lexerAnalysis() {
 
 		switch(state) {
 			// q0:
-			// Estado inicial, identificando espaços em branco, valores numéricos,
-			// valores alfanuméricos e valores alfabéticos:
+			// Estado inicial, identificando espacos em branco, valores numericos,
+			// valores alfanumericos e valores alfabaticos:
 			case 0:
 				{
-					// Identificando espaços em branco:
+					// Identificando espacos em branco:
 					if(ch == SPACE || ch == TAB || ch == NEW_LINE) {
 						if(ch == NEW_LINE) {
 							row++;
@@ -36,7 +36,7 @@ Token* lexerAnalysis() {
 						break;
 					}
 
-					// Identificando valores numéricos:
+					// Identificando valores numericos:
 					if(ch >= '0' && ch <= '9') {
 						addWord(&word, &i, ch);
 						state = 2;
@@ -45,10 +45,22 @@ Token* lexerAnalysis() {
 					}
 
 
-					// Identificando valores alfanuméricos:
+					// Identificando valores alfanumericos:
 					if(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9') {
 						addWord(&word, &i, ch);
 						state = 1;
+
+						break;
+					}
+
+					// Identificando string nÃ£o fechadas:
+					if(ch == SMB_SQT) {
+						while((ch = fgetc(input)) != SMB_SQT) {
+							if(ch == EOF) {
+								showError("String not closed", row, column);
+								break;
+							}
+						}
 
 						break;
 					}
@@ -77,7 +89,7 @@ Token* lexerAnalysis() {
 				}
 
 			// q1:
-			// Lidando com valores alfanuméricos e indentificando palavras reservadas
+			// Lidando com valores alfanumericos e indentificando palavras reservadas
 			// e identificadores:
 			case 1:
 				{
@@ -106,7 +118,7 @@ Token* lexerAnalysis() {
 				}
 
 			// q2:
-			// Lidando com números inteiros e identificando possíveis números reais:
+			// Lidando com nemeros inteiros e identificando possiveis numeros reais:
 			case 2:
 				{
 					if(ch >= '0' && ch <= '9') {
@@ -126,7 +138,7 @@ Token* lexerAnalysis() {
 				}
 
 			// q3:
-			// Lidando com números reais:
+			// Lidando com numeros reais:
 			case 3:
 				{
 					if(ch >= '0' && ch <= '9') {
@@ -162,7 +174,6 @@ Token* lexerAnalysis() {
 			default:
 				{
 					showError("Unknown state", row, column);
-
 					break;
 				}
 		}
@@ -174,20 +185,17 @@ Token* lexerAnalysis() {
 	return token;
 }
 
-// Exibe um erro léxico:
 static void showError(const char* message, const int row, const int column) {
 	printf("LexicalError: %s at %d:%d\n", message, row, column);
 	fprintf(output, "LexicalError: %s at %d:%d\n", message, row, column);
 }
 
-// Adiciona um caractere a uma palavra
 static void addWord(char** word, int* i, const char ch) {
 	*word = (char*) realloc(*word, sizeof(char) * (*i + 2));
 	(*word)[(*i)++] = ch;
 	(*word)[*i] = '\0';
 }
 
-// Verifica se uma palavra é reservada:
 static int isReservedWord(const char* word) {
 	if(word == NULL) return 0;
 
@@ -250,7 +258,6 @@ static int isReservedOperator(const char* word) {
 	return 0;
 }
 
-// Cria um token:
 static Token* createToken(char* name, char* word, int row, int column) {
 	Token* token = (Token*) malloc(sizeof(Token));
 

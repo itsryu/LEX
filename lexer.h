@@ -24,7 +24,7 @@ typedef struct {
 #define RESERVED_OP_OR "or"
 #define RESERVED_OP_MOD "mod"
 
-// Símbolos
+// Simbolos
 #define SMB_OBC '{'
 #define SMB_CBC '}'
 #define SMB_SEM ';'
@@ -87,5 +87,5 @@ typedef struct {
 
 FILE *input, *output;
 
-// Funções:
+// Funcoes:
 Token* lexerAnalysis();

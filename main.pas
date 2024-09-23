@@ -3,11 +3,13 @@ program Exemplo;
 var 
    x, y: integer; 
    z: real;
+   p: string;
 
 begin
    x := 10;
    y := 20;
    z := x - y * 2.5;
+   p := 'teste'
 
    if x > y then
       x := x - 1;
