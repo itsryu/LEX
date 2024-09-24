@@ -53,13 +53,26 @@ Token* lexerAnalysis() {
 						break;
 					}
 
-					// Identificando string não fechadas:
-					if(ch == SMB_SQT) {
-						while((ch = fgetc(input)) != SMB_SQT) {
-							if(ch == EOF) {
-								showError("String not closed", row, column);
-								break;
+					// Identificando simbolos:
+					if(ch == SMB_CBC || ch == SMB_COLON || ch == SMB_COM || ch == SMB_CPA || ch == SMB_DOT || ch == SMB_OBC || ch == SMB_OPA || ch == SMB_SEM || ch == SMB_SQT) {
+						addWord(&word, &i, ch);
+
+						if(ch == SMB_SQT) {
+							while((ch = fgetc(input)) != SMB_SQT) {
+								addWord(&word, &i, ch);
+
+								if(ch == EOF) {
+									showError("String not closed", row, column);
+									break;
+								}
 							}
+
+							addWord(&word, &i, ch);
+							
+							Token* token = createToken("String", word, row, column);
+							return token;
+						} else {
+							state = 5;
 						}
 
 						break;
@@ -154,11 +167,11 @@ Token* lexerAnalysis() {
 					break;
 				}
 
-			// q6:
+			// q4:
 			// Lidando com operadores de menor ou igual e maior ou igual:
 			case 4:
 				{
-					if(ch == OP_EQU) {
+					if(ch == OP_EQU && (word[i - 1] == OP_GT || word[i - 1] == OP_LT)) {
 						addWord(&word, &i, ch);
 					} else {
 						ungetc(ch, input);
@@ -171,6 +184,24 @@ Token* lexerAnalysis() {
 					break;
 				}
 
+			// q5:
+			// Identificando símbolos:
+			case 5: 
+				{
+					if(ch == OP_EQU && word[i - 1] == SMB_COLON) {
+						addWord(&word, &i, ch);
+
+						Token* token = createToken("Assignment Operator", word, row, column);
+						return token;
+					} else {
+						ungetc(ch, input);
+						column--;
+						
+						Token* token = createToken("Symbol", word, row, column);
+						return token;
+					}
+				}
+			
 			default:
 				{
 					showError("Unknown state", row, column);
