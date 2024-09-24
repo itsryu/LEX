@@ -12,7 +12,7 @@
 <Symbol, ':'> : <5, 5>
 <Reserved-type, 'real'> : <5, 10>
 <Symbol, ';'> : <5, 11>
-<Identifier, 'p'> : <6, 4>
+<Identifier, 's'> : <6, 4>
 <Symbol, ':'> : <6, 5>
 <Reserved-type, 'string'> : <6, 12>
 <Symbol, ';'> : <6, 13>
@@ -33,9 +33,10 @@
 <Binary Arithmetic Operator, '*'> : <11, 15>
 <Real value, '2.5'> : <11, 19>
 <Symbol, ';'> : <11, 20>
-<Identifier, 'p'> : <12, 4>
+<Identifier, 's'> : <12, 4>
 <Assignment Operator, ':='> : <12, 7>
-<String, ''teste''> : <12, 9>
+<String, ''teste''> : <12, 15>
+<Symbol, ';'> : <12, 16>
 <Reserved-word, 'if'> : <14, 5>
 <Identifier, 'x'> : <14, 7>
 <Relational Operator, '>'> : <14, 9>
@@ -74,3 +75,4 @@
 <Symbol, ';'> : <23, 17>
 <Reserved-word, 'end'> : <24, 6>
 <Reserved-word, 'end'> : <25, 3>
+<Symbol, '.'> : <25, 4>

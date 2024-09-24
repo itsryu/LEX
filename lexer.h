@@ -34,6 +34,7 @@ typedef struct {
 #define SMB_COM ','
 #define SMB_COLON ':'
 #define SMB_SQT '\''
+#define SMB_DQT '\"'
 
 // Palavras reservadas:
 #define RESERVED_WORD_PROGRAM "program"
@@ -84,6 +85,7 @@ typedef struct {
 #define TAB '\t'
 #define SPACE ' '
 #define NEW_LINE '\n'
+#define END_OF_STRING '\0'
 
 FILE *input, *output;
 

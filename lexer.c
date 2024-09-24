@@ -6,7 +6,7 @@
 
 static int column = 0, row = 1;
 static char ch;
-static void addWord(char** word, int* i, const char ch);
+static void addWord(char** word, int* size, const char ch);
 static Token* createToken(char* name, char* word, int row, int column);
 static void showError(const char* message, const int row, const int column);
 static int isReservedWord(const char* word);
@@ -15,7 +15,7 @@ static int isReservedOperator(const char* word);
 
 Token* lexerAnalysis() {
 	char* word = (char*) malloc(sizeof(char));
-	int state = 0, i = 0;
+	int state = 0, size = 0;
 
 	while((ch = fgetc(input)) != EOF) {
 		column++;
@@ -23,7 +23,7 @@ Token* lexerAnalysis() {
 		switch(state) {
 			// q0:
 			// Estado inicial, identificando espacos em branco, valores numericos,
-			// valores alfanumericos e valores alfabaticos:
+			// valores alfanumericos, valores simbolicos e operadores:
 			case 0:
 				{
 					// Identificando espacos em branco:
@@ -38,7 +38,7 @@ Token* lexerAnalysis() {
 
 					// Identificando valores numericos:
 					if(ch >= '0' && ch <= '9') {
-						addWord(&word, &i, ch);
+						addWord(&word, &size, ch);
 						state = 2;
 
 						break;
@@ -47,46 +47,35 @@ Token* lexerAnalysis() {
 
 					// Identificando valores alfanumericos:
 					if(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9') {
-						addWord(&word, &i, ch);
+						addWord(&word, &size, ch);
 						state = 1;
 
 						break;
 					}
 
-					// Identificando simbolos:
-					if(ch == SMB_CBC || ch == SMB_COLON || ch == SMB_COM || ch == SMB_CPA || ch == SMB_DOT || ch == SMB_OBC || ch == SMB_OPA || ch == SMB_SEM || ch == SMB_SQT) {
-						addWord(&word, &i, ch);
+					// Identificando símbolos:
+					if(ch == SMB_OBC || ch == SMB_CBC || ch == SMB_SEM || ch == SMB_OPA || ch == SMB_CPA || ch == SMB_DOT || ch == SMB_COM || ch == SMB_COLON || ch == SMB_SQT || ch == SMB_DQT) {
+						addWord(&word, &size, ch);
 
-						if(ch == SMB_SQT) {
-							while((ch = fgetc(input)) != SMB_SQT) {
-								addWord(&word, &i, ch);
-
-								if(ch == EOF) {
-									showError("String not closed", row, column);
-									break;
-								}
-							}
-
-							addWord(&word, &i, ch);
-							
-							Token* token = createToken("String", word, row, column);
-							return token;
-						} else {
+						if(ch == SMB_COLON) {
 							state = 5;
+							break;
+						} else if(ch == SMB_SQT) {
+							state = 6;
+							break;
+						} else {
+							return createToken("Symbol", word, row, column);
 						}
-
-						break;
 					}
 
 					// Identificando operadores:
 					if(ch == OP_SUM || ch == OP_SUB || ch == OP_DIV || ch == OP_MUL || ch == OP_LT || ch == OP_GT) {
-						addWord(&word, &i, ch);
+						addWord(&word, &size, ch);
 
 						if(ch == OP_SUM || ch == OP_SUB || ch == OP_DIV || ch == OP_MUL) {
-							Token* token = createToken("Binary Arithmetic Operator", word, row, column);
-							return token;
+							return createToken("Binary Arithmetic Operator", word, row, column);
 						} else {
-							state = 4; // Identificando operadores de '<=' e '>=':
+							state = 4;
 						}
 
 						break;
@@ -97,8 +86,7 @@ Token* lexerAnalysis() {
 					strcat(message, "'");
 
 					showError(message, row, column);
-
-					break;
+					return createToken("EOF", "EOF", row, column);
 				}
 
 			// q1:
@@ -107,23 +95,19 @@ Token* lexerAnalysis() {
 			case 1:
 				{
 					if(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9') {
-						addWord(&word, &i, ch);
+						addWord(&word, &size, ch);
 					} else {
 						ungetc(ch, input);
 						column--;
 
 						if(isReservedWord(word)) {
-							Token* token = createToken("Reserved-word", word, row, column);
-							return token;
+							return createToken("Reserved-word", word, row, column);
 						} else if(isReservedType(word)) {
-							Token* token = createToken("Reserved-type", word, row, column);
-							return token;
+							return createToken("Reserved-type", word, row, column);
 						} else if(isReservedOperator(word)) {
-							Token* token = createToken("Reserved-operator", word, row, column);
-							return token;
+							return createToken("Reserved-operator", word, row, column);
 						} else {
-							Token* token = createToken("Identifier", word, row, column);
-							return token;
+							return createToken("Identifier", word, row, column);
 						}
 					}
 
@@ -135,16 +119,15 @@ Token* lexerAnalysis() {
 			case 2:
 				{
 					if(ch >= '0' && ch <= '9') {
-						addWord(&word, &i, ch);
+						addWord(&word, &size, ch);
 					} else if(ch == SMB_DOT) {
-						addWord(&word, &i, ch);
+						addWord(&word, &size, ch);
 						state = 3;
 					} else {
 						ungetc(ch, input);
 						column--;
 
-						Token* token = createToken("Integer value", word, row, column);
-						return token;
+						return createToken("Integer value", word, row, column);
 					}
 
 					break;
@@ -155,53 +138,67 @@ Token* lexerAnalysis() {
 			case 3:
 				{
 					if(ch >= '0' && ch <= '9') {
-						addWord(&word, &i, ch);
+						addWord(&word, &size, ch);
 					} else {
 						ungetc(ch, input);
 						column--;
 
-						Token* token = createToken("Real value", word, row, column);
-						return token;
+						return createToken("Real value", word, row, column);
 					}
 
 					break;
 				}
 
 			// q4:
-			// Lidando com operadores de menor ou igual e maior ou igual:
+			// Lidando com operadores:
 			case 4:
 				{
-					if(ch == OP_EQU && (word[i - 1] == OP_GT || word[i - 1] == OP_LT)) {
-						addWord(&word, &i, ch);
+					if(ch == OP_EQU && (word[size - 1] == OP_GT || word[size - 1] == OP_LT)) {
+						addWord(&word, &size, ch);
 					} else {
 						ungetc(ch, input);
 						column--;
-					}
 
-					Token* token = createToken("Relational Operator", word, row, column);
-					return token;
+						return createToken("Relational Operator", word, row, column);
+					}
 
 					break;
 				}
 
 			// q5:
 			// Identificando símbolos:
-			case 5: 
+			case 5:
 				{
-					if(ch == OP_EQU && word[i - 1] == SMB_COLON) {
-						addWord(&word, &i, ch);
+					if(ch == OP_EQU && word[size - 1] == SMB_COLON) {
+						addWord(&word, &size, ch);
 
-						Token* token = createToken("Assignment Operator", word, row, column);
-						return token;
+						return createToken("Assignment Operator", word, row, column);
 					} else {
 						ungetc(ch, input);
 						column--;
-						
-						Token* token = createToken("Symbol", word, row, column);
-						return token;
+
+						return createToken("Symbol", word, row, column);
 					}
 				}
-			
+
+			// q6:
+			// Identificando strings:
+			case 6:
+				{
+					if(ch == SMB_SQT) {
+						addWord(&word, &size, ch);
+						return createToken("String", word, row, column);
+					} else if(ch == EOF || ch == NEW_LINE) {
+						showError("String not closed", row, column);
+						return createToken("EOF", "EOF", row, column);
+					} else {
+						addWord(&word, &size, ch);
+					}
+
+					break;
+				}
+
+
 			default:
 				{
 					showError("Unknown state", row, column);
@@ -211,9 +208,7 @@ Token* lexerAnalysis() {
 	}
 
 	free(word);
-	Token* token = createToken("EOF", "EOF", row, column);
-
-	return token;
+	return createToken("EOF", "EOF", row, column);
 }
 
 static void showError(const char* message, const int row, const int column) {
@@ -221,10 +216,10 @@ static void showError(const char* message, const int row, const int column) {
 	fprintf(output, "LexicalError: %s at %d:%d\n", message, row, column);
 }
 
-static void addWord(char** word, int* i, const char ch) {
-	*word = (char*) realloc(*word, sizeof(char) * (*i + 2));
-	(*word)[(*i)++] = ch;
-	(*word)[*i] = '\0';
+static void addWord(char** word, int* size, const char ch) {
+	*word = (char*) realloc(*word, sizeof(char) * (*size + 2));
+	(*word)[(*size)++] = ch;
+	(*word)[*size] = '\0';
 }
 
 static int isReservedWord(const char* word) {
@@ -244,8 +239,8 @@ static int isReservedWord(const char* word) {
 
 	static const int reservedWordsSize = sizeof(reserverdWords) / sizeof(char*);
 
-	for(int i = 0; i < reservedWordsSize; i++) {
-		if(strcmp(word, reserverdWords[i]) == 0) return 1;
+	for(int size = 0; size < reservedWordsSize; size++) {
+		if(strcmp(word, reserverdWords[size]) == 0) return 1;
 	}
 
 	return 0;
@@ -254,20 +249,20 @@ static int isReservedWord(const char* word) {
 static int isReservedType(const char* word) {
 	if(word == NULL) return 0;
 
-    static const char* reserverdWords[] = {
-        RESERVED_TYPE_INTEGER,  RESERVED_TYPE_REAL,
-        RESERVED_TYPE_CHAR,     RESERVED_TYPE_STRING,
-        RESERVED_TYPE_DOUBLE,   RESERVED_TYPE_BYTE,
-        RESERVED_TYPE_WORD,     RESERVED_TYPE_LONGINT,
-        RESERVED_TYPE_SHORTINT, RESERVED_TYPE_SINGLE,
-        RESERVED_TYPE_EXTENDED, RESERVED_TYPE_COMP,
-        RESERVED_TYPE_CURRENCY
+	static const char* reserverdWords[] = {
+		RESERVED_TYPE_INTEGER,  RESERVED_TYPE_REAL,
+		RESERVED_TYPE_CHAR,     RESERVED_TYPE_STRING,
+		RESERVED_TYPE_DOUBLE,   RESERVED_TYPE_BYTE,
+		RESERVED_TYPE_WORD,     RESERVED_TYPE_LONGINT,
+		RESERVED_TYPE_SHORTINT, RESERVED_TYPE_SINGLE,
+		RESERVED_TYPE_EXTENDED, RESERVED_TYPE_COMP,
+		RESERVED_TYPE_CURRENCY
 	};
 
-    static const int reservedWordsSize = sizeof(reserverdWords) / sizeof(char*);
+	static const int reservedWordsSize = sizeof(reserverdWords) / sizeof(char*);
 
-	for(int i = 0; i < reservedWordsSize; i++) {
-		if(strcmp(word, reserverdWords[i]) == 0) return 1;
+	for(int size = 0; size < reservedWordsSize; size++) {
+		if(strcmp(word, reserverdWords[size]) == 0) return 1;
 	}
 
 	return 0;
@@ -282,8 +277,8 @@ static int isReservedOperator(const char* word) {
 
 	static const int reservedWordsSize = sizeof(reserverdWords) / sizeof(char*);
 
-	for(int i = 0; i < reservedWordsSize; i++) {
-		if(strcmp(word, reserverdWords[i]) == 0) return 1;
+	for(int size = 0; size < reservedWordsSize; size++) {
+		if(strcmp(word, reserverdWords[size]) == 0) return 1;
 	}
 
 	return 0;
