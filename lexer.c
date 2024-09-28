@@ -327,18 +327,18 @@ SymbolTable* initTable() {
 	return symbolTable;
 }
 
-static unsigned int hash(char* key) {
-    unsigned int hash = 0;
+static unsigned int hash(char* key, int tableSize) {
+	unsigned int hash = 0;
 
-    while (*key) {
-        hash = (hash << 5) + *key++;
-    }
-	
-    return hash % 100;
+	while (*key) {
+		hash = (hash << 5) + *key++;
+	}
+
+	return hash % tableSize;
 }
 
 static void insertTable(SymbolTable* symbolTable, char* key, Token* token) {
-	unsigned int index = hash(key);
+	unsigned int index = hash(key, sizeof(symbolTable->entries) / sizeof(Table*));
     Table* table = (Table*) malloc(sizeof(Table));
 
 	table->key = key;
@@ -348,7 +348,7 @@ static void insertTable(SymbolTable* symbolTable, char* key, Token* token) {
 }
 
 Token* searchTable(SymbolTable* symbolTable, char* key) {
-    unsigned int index = hash(key);
+    unsigned int index = hash(key, sizeof(symbolTable->entries) / sizeof(Table*));
     Table* table = symbolTable->entries[index];
 
     while (table != NULL) {

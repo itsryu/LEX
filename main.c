@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
 			} else {
 				Token* token;
 				SymbolTable* table = initTable();
-				output = fopen("./output.lex", "w");
+				output = fopen("./output/output.lex", "w");
 
 				while((token = lexerAnalysis(table)) && token->type != ERROR && token->type != END_OF_FILE && token != NULL) {
 					printf("<%d, %s, '%s'> : <%d, %d>\n", token->type, token->name, token->word, token->row, token->column);
