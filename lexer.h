@@ -2,12 +2,36 @@
 
 #include <stdio.h>
 
+typedef enum {
+    RESERVED_WORD,
+    RESERVED_TYPE,
+    RESERVED_OP,
+    IDENTIFIER,
+    OP,
+    SMB,
+    NUM,
+    STRING,
+    END_OF_FILE,
+    ERROR
+} TokenType;
+
 typedef struct {
     char* name;
     char* word;
     int row;
     int column;
+    TokenType type;
 } Token;
+
+typedef struct Table {
+    char* key;
+    Token* token;
+    struct Table* next;
+} Table;
+
+typedef struct {
+    Table** entries;
+} SymbolTable;
 
 // Operadores:
 #define OP_SUM '+'
@@ -90,4 +114,6 @@ typedef struct {
 FILE *input, *output;
 
 // Funcoes:
-Token* lexerAnalysis();
+Token* lexerAnalysis(SymbolTable* table);
+SymbolTable* initTable();
+Token* searchTable(SymbolTable* symbolTable, char* key);

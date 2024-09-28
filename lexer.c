@@ -7,13 +7,14 @@
 static int column = 0, row = 1;
 static char ch;
 static void addWord(char** word, int* size, const char ch);
-static Token* createToken(char* name, char* word, int row, int column);
+static Token* createToken(TokenType type, char* name, char* word, int row, int column);
+static void insertTable(SymbolTable* symbolTable, char* key, Token* token);
 static void showError(const char* message, const int row, const int column);
 static int isReservedWord(const char* word);
 static int isReservedType(const char* word);
 static int isReservedOperator(const char* word);
 
-Token* lexerAnalysis() {
+Token* lexerAnalysis(SymbolTable* table) {
 	char* word = (char*) malloc(sizeof(char));
 	int state = 0, size = 0;
 
@@ -53,7 +54,7 @@ Token* lexerAnalysis() {
 						break;
 					}
 
-					// Identificando sÃ­mbolos:
+					// Identificando si­mbolos:
 					if(ch == SMB_OBC || ch == SMB_CBC || ch == SMB_SEM || ch == SMB_OPA || ch == SMB_CPA || ch == SMB_DOT || ch == SMB_COM || ch == SMB_COLON || ch == SMB_SQT || ch == SMB_DQT) {
 						addWord(&word, &size, ch);
 
@@ -64,7 +65,9 @@ Token* lexerAnalysis() {
 							state = 6;
 							break;
 						} else {
-							return createToken("Symbol", word, row, column);
+							Token* token = createToken(SMB, "Symbol", word, row, column);
+							insertTable(table, word, token);
+							return token;
 						}
 					}
 
@@ -73,7 +76,9 @@ Token* lexerAnalysis() {
 						addWord(&word, &size, ch);
 
 						if(ch == OP_SUM || ch == OP_SUB || ch == OP_DIV || ch == OP_MUL) {
-							return createToken("Binary Arithmetic Operator", word, row, column);
+							Token* token =  createToken(OP, "Binary Arithmetic Operator", word, row, column);
+							insertTable(table, word, token);
+							return token;
 						} else {
 							state = 4;
 						}
@@ -81,12 +86,16 @@ Token* lexerAnalysis() {
 						break;
 					}
 
+					addWord(&word, &size, ch);
+
 					char message[50] = "Unknown character: '";
 					message[20] = ch;
 					strcat(message, "'");
-
+					
 					showError(message, row, column);
-					return createToken("EOF", "EOF", row, column);
+					Token* token = createToken(ERROR, "LexicalError", word, row, column);
+					insertTable(table, message, token);
+					return token; 
 				}
 
 			// q1:
@@ -101,13 +110,21 @@ Token* lexerAnalysis() {
 						column--;
 
 						if(isReservedWord(word)) {
-							return createToken("Reserved-word", word, row, column);
+							Token* token = createToken(RESERVED_WORD, "Reserved-word", word, row, column);
+							insertTable(table, word, token);
+							return token;
 						} else if(isReservedType(word)) {
-							return createToken("Reserved-type", word, row, column);
+							Token* token = createToken(RESERVED_TYPE, "Reserved-type", word, row, column);
+							insertTable(table, word, token);
+							return token;						
 						} else if(isReservedOperator(word)) {
-							return createToken("Reserved-operator", word, row, column);
+							Token* token = createToken(RESERVED_OP, "Reserved-operator", word, row, column);
+							insertTable(table, word, token);
+							return token;
 						} else {
-							return createToken("Identifier", word, row, column);
+							Token* token = createToken(IDENTIFIER, "Identifier", word, row, column);
+							insertTable(table, word, token);
+							return token;
 						}
 					}
 
@@ -127,7 +144,9 @@ Token* lexerAnalysis() {
 						ungetc(ch, input);
 						column--;
 
-						return createToken("Integer value", word, row, column);
+						Token* token = createToken(RESERVED_TYPE, "Integer value", word, row, column);
+						insertTable(table, word, token);
+						return token;
 					}
 
 					break;
@@ -143,7 +162,9 @@ Token* lexerAnalysis() {
 						ungetc(ch, input);
 						column--;
 
-						return createToken("Real value", word, row, column);
+						Token* token = createToken(RESERVED_TYPE, "Real value", word, row, column);
+						insertTable(table, word, token);
+						return token;
 					}
 
 					break;
@@ -159,25 +180,31 @@ Token* lexerAnalysis() {
 						ungetc(ch, input);
 						column--;
 
-						return createToken("Relational Operator", word, row, column);
+						Token* token = createToken(OP, "Relational Operator", word, row, column);
+						insertTable(table, word, token);
+						return token;
 					}
 
 					break;
 				}
 
 			// q5:
-			// Identificando sÃ­mbolos:
+			// Identificando si­mbolos:
 			case 5:
 				{
 					if(ch == OP_EQU && word[size - 1] == SMB_COLON) {
 						addWord(&word, &size, ch);
 
-						return createToken("Assignment Operator", word, row, column);
+						Token* token = createToken(OP, "Assignment Operator", word, row, column);
+						insertTable(table, word, token);
+						return token;
 					} else {
 						ungetc(ch, input);
 						column--;
 
-						return createToken("Symbol", word, row, column);
+						Token* token = createToken(SMB, "Symbol", word, row, column);
+						insertTable(table, word, token);
+						return token;
 					}
 				}
 
@@ -187,10 +214,13 @@ Token* lexerAnalysis() {
 				{
 					if(ch == SMB_SQT) {
 						addWord(&word, &size, ch);
-						return createToken("String", word, row, column);
+						Token* token = createToken(STRING, "String", word, row, column);
+						insertTable(table, word, token);
+						return token;
 					} else if(ch == EOF || ch == NEW_LINE) {
 						showError("String not closed", row, column);
-						return createToken("EOF", "EOF", row, column);
+						Token* token = createToken(ERROR, "LexicalError", word, row, column);
+						insertTable(table, word, token);
 					} else {
 						addWord(&word, &size, ch);
 					}
@@ -208,7 +238,9 @@ Token* lexerAnalysis() {
 	}
 
 	free(word);
-	return createToken("EOF", "EOF", row, column);
+	Token* token = createToken(END_OF_FILE, "EOF", "EOF", row, column);
+	insertTable(table, "EOF", token);
+	return token;
 }
 
 static void showError(const char* message, const int row, const int column) {
@@ -284,9 +316,56 @@ static int isReservedOperator(const char* word) {
 	return 0;
 }
 
-static Token* createToken(char* name, char* word, int row, int column) {
+SymbolTable* initTable() {
+	SymbolTable* symbolTable = (SymbolTable*) malloc(sizeof(SymbolTable));
+	symbolTable->entries = (Table**) malloc(100 * sizeof(Table*));
+
+	for (int i = 0; i < 100; i++) {
+		symbolTable->entries[i] = NULL;
+	}
+
+	return symbolTable;
+}
+
+static unsigned int hash(char* key) {
+    unsigned int hash = 0;
+
+    while (*key) {
+        hash = (hash << 5) + *key++;
+    }
+	
+    return hash % 100;
+}
+
+static void insertTable(SymbolTable* symbolTable, char* key, Token* token) {
+	unsigned int index = hash(key);
+    Table* table = (Table*) malloc(sizeof(Table));
+
+	table->key = key;
+	table->token = token;
+	table->next = symbolTable->entries[index];
+	symbolTable->entries[index] = table;
+}
+
+Token* searchTable(SymbolTable* symbolTable, char* key) {
+    unsigned int index = hash(key);
+    Table* table = symbolTable->entries[index];
+
+    while (table != NULL) {
+        if (strcmp(table->key, key) == 0) {
+            return table->token;
+        }
+
+        table = table->next;
+    }
+	
+    return NULL;
+}
+
+static Token* createToken(TokenType type, char* name, char* word, int linha, int coluna) {
 	Token* token = (Token*) malloc(sizeof(Token));
 
+	token->type = type;
 	token->name = name;
 	token->word = word;
 	token->row = row;

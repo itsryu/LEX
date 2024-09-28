@@ -27,14 +27,16 @@ int main(int argc, char** argv) {
 				return 1;
 			} else {
 				Token* token;
+				SymbolTable* table = initTable();
 				output = fopen("./output.lex", "w");
 
-				while(strcmp((token = lexerAnalysis())->name, "EOF") != 0 && token != NULL) {
-					printf("<%s, '%s'> : <%d, %d>\n", token->name, token->word, token->row, token->column);
+				while((token = lexerAnalysis(table)) && token->type != ERROR && token->type != END_OF_FILE && token != NULL) {
+					printf("<%d, %s, '%s'> : <%d, %d>\n", token->type, token->name, token->word, token->row, token->column);
 					saveFile(token);
 				}
 
 				free(token);
+				free(table);
 			}
 		}
 	}
@@ -43,5 +45,5 @@ int main(int argc, char** argv) {
 }
 
 static void saveFile(Token* token) {
-	fprintf(output, "<%s, '%s'> : <%d, %d>\n", token->name, token->word, token->row, token->column);
+	fprintf(output, "<%d, %s, '%s'> : <%d, %d>\n", token->type, token->name, token->word, token->row, token->column);
 }
