@@ -6,8 +6,24 @@
 
 static void saveFile(Token* token);
 
+/**
+ * @file main.c
+ * @brief Main entry point for the lexical analysis program.
+ *
+ * This program reads a Pascal file and performs lexical analysis on it.
+ * It supports the following command-line arguments:
+ * - `--help` or `-h`: Displays usage information.
+ * - `--file <file>` or `-f <file>`: Specifies the Pascal file to be analyzed.
+ *
+ * The program checks for valid arguments and file extensions, opens the specified file,
+ * and performs lexical analysis, printing tokens and saving them to an output file.
+ *
+ * @param argc The number of command-line arguments.
+ * @param argv The array of command-line arguments.
+ * @return Returns 0 on success, or 1 on error.
+ */
 int main(int argc, char** argv) {
-	if(argv[1] == NULL) {
+	if(argc == 0 || argv[1] == NULL) {
 		printf("Argument not specified, use:\n\t--help\n");
 		return 1;
 	} else {
@@ -20,23 +36,30 @@ int main(int argc, char** argv) {
 			printf("File not specified:\n\t--file <file>\n");
 			return 1;
 		} else {
-			input = fopen(argv[2], "r");
+			const char *file_ext = strrchr(argv[2], '.');
 
-			if(input == NULL) {
-				printf("File not found:\n\t--file <file>\n");
+			if (!file_ext || strcmp(file_ext, ".pas") != 0) {
+				printf("Invalid file extension. Please provide a .pas file.\n");
 				return 1;
 			} else {
-				Token* token;
-				SymbolTable* table = initTable();
-				output = fopen("./output/output.lex", "w");
+				input = fopen(argv[2], "r");
 
-				while((token = lexerAnalysis(table)) && token->type != ERROR && token->type != END_OF_FILE && token != NULL) {
-					printf("<%d, %s, '%s'> : <%d, %d>\n", token->type, token->name, token->word, token->row, token->column);
-					saveFile(token);
+				if(input == NULL) {
+					printf("File not found:\n\t--file <file>\n");
+					return 1;
+				} else {
+					Token* token;
+					Table* table = initTable();
+					output = fopen("./output/output.lex", "w");
+
+					while((token = lexerAnalysis(table)) && token->type != ERROR && token->type != END_OF_FILE && token != NULL) {
+						printf("<%d, %s, '%s'> : <%d, %d>\n", token->type, token->name, token->word, token->row, token->column);
+						saveFile(token);
+					}
+
+					free(token);
+					free(table);
 				}
-
-				free(token);
-				free(table);
 			}
 		}
 	}
@@ -44,6 +67,13 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
+/**
+ * @brief Saves the token information to the output file.
+ *
+ * This function writes the details of a given token to the output file in a specific format.
+ *
+ * @param token A pointer to the Token structure containing the token information.
+ */
 static void saveFile(Token* token) {
 	fprintf(output, "<%d, %s, '%s'> : <%d, %d>\n", token->type, token->name, token->word, token->row, token->column);
 }

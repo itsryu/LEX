@@ -8,13 +8,24 @@ static int column = 0, row = 1;
 static char ch;
 static void addWord(char** word, int* size, const char ch);
 static Token* createToken(TokenType type, char* name, char* word, int row, int column);
-static void insertTable(SymbolTable* symbolTable, char* key, Token* token);
+static void insertTable(Table* table, char* key, Token* token);
 static void showError(const char* message, const int row, const int column);
 static int isReservedWord(const char* word);
 static int isReservedType(const char* word);
 static int isReservedOperator(const char* word);
 
-Token* lexerAnalysis(SymbolTable* table) {
+/**
+ * @brief Performs lexical analysis on the input and generates tokens.
+ *
+ * This function reads characters from the input and identifies different types of tokens such as
+ * spaces, numeric values, alphanumeric values, symbols, operators, reserved words, identifiers,
+ * integer values, real values, relational operators, assignment operators, and strings. It also
+ * handles lexical errors and end-of-file conditions.
+ *
+ * @param table A pointer to the symbol table where tokens will be inserted.
+ * @return A pointer to the generated token.
+ */
+Token* lexerAnalysis(Table* table) {
 	char* word = (char*) malloc(sizeof(char));
 	int state = 0, size = 0;
 
@@ -47,7 +58,7 @@ Token* lexerAnalysis(SymbolTable* table) {
 
 
 					// Identificando valores alfanumericos:
-					if(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9') {
+					if(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9' || ch == SMB_UNDER) {
 						addWord(&word, &size, ch);
 						state = 1;
 
@@ -61,11 +72,11 @@ Token* lexerAnalysis(SymbolTable* table) {
 						if(ch == SMB_COLON) {
 							state = 5;
 							break;
-						} else if(ch == SMB_SQT) {
+						} else if(ch == SMB_SQT || ch == SMB_DQT) {
 							state = 6;
 							break;
 						} else {
-							Token* token = createToken(SMB, "Symbol", word, row, column);
+							Token* token = createToken(SYMBOL, "Symbol", word, row, column);
 							insertTable(table, word, token);
 							return token;
 						}
@@ -76,7 +87,7 @@ Token* lexerAnalysis(SymbolTable* table) {
 						addWord(&word, &size, ch);
 
 						if(ch == OP_SUM || ch == OP_SUB || ch == OP_DIV || ch == OP_MUL) {
-							Token* token =  createToken(OP, "Binary Arithmetic Operator", word, row, column);
+							Token* token =  createToken(OPERATOR, "Binary Arithmetic Operator", word, row, column);
 							insertTable(table, word, token);
 							return token;
 						} else {
@@ -103,7 +114,7 @@ Token* lexerAnalysis(SymbolTable* table) {
 			// e identificadores:
 			case 1:
 				{
-					if(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9') {
+					if(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9' || ch == SMB_UNDER) {
 						addWord(&word, &size, ch);
 					} else {
 						ungetc(ch, input);
@@ -118,7 +129,7 @@ Token* lexerAnalysis(SymbolTable* table) {
 							insertTable(table, word, token);
 							return token;						
 						} else if(isReservedOperator(word)) {
-							Token* token = createToken(RESERVED_OP, "Reserved-operator", word, row, column);
+							Token* token = createToken(RESERVED_OPERATOR, "Reserved-operator", word, row, column);
 							insertTable(table, word, token);
 							return token;
 						} else {
@@ -180,7 +191,7 @@ Token* lexerAnalysis(SymbolTable* table) {
 						ungetc(ch, input);
 						column--;
 
-						Token* token = createToken(OP, "Relational Operator", word, row, column);
+						Token* token = createToken(OPERATOR, "Relational Operator", word, row, column);
 						insertTable(table, word, token);
 						return token;
 					}
@@ -195,14 +206,14 @@ Token* lexerAnalysis(SymbolTable* table) {
 					if(ch == OP_EQU && word[size - 1] == SMB_COLON) {
 						addWord(&word, &size, ch);
 
-						Token* token = createToken(OP, "Assignment Operator", word, row, column);
+						Token* token = createToken(OPERATOR, "Assignment Operator", word, row, column);
 						insertTable(table, word, token);
 						return token;
 					} else {
 						ungetc(ch, input);
 						column--;
 
-						Token* token = createToken(SMB, "Symbol", word, row, column);
+						Token* token = createToken(SYMBOL, "Symbol", word, row, column);
 						insertTable(table, word, token);
 						return token;
 					}
@@ -212,15 +223,16 @@ Token* lexerAnalysis(SymbolTable* table) {
 			// Identificando strings:
 			case 6:
 				{
-					if(ch == SMB_SQT) {
+					if(ch == SMB_SQT || ch == SMB_DQT) {
 						addWord(&word, &size, ch);
 						Token* token = createToken(STRING, "String", word, row, column);
 						insertTable(table, word, token);
 						return token;
-					} else if(ch == EOF || ch == NEW_LINE) {
+					} else if(ch == END_OF_FILE || ch == NEW_LINE) {
 						showError("String not closed", row, column);
 						Token* token = createToken(ERROR, "LexicalError", word, row, column);
 						insertTable(table, word, token);
+						return token;
 					} else {
 						addWord(&word, &size, ch);
 					}
@@ -248,6 +260,16 @@ static void showError(const char* message, const int row, const int column) {
 	fprintf(output, "LexicalError: %s at %d:%d\n", message, row, column);
 }
 
+/**
+ * @brief Adds a character to a dynamically allocated word array.
+ *
+ * This function appends a given character to the end of a dynamically 
+ * allocated word array, resizing the array if necessary.
+ *
+ * @param word A pointer to the dynamically allocated word array.
+ * @param size A pointer to the current size of the word array.
+ * @param ch The character to be added to the word array.
+ */
 static void addWord(char** word, int* size, const char ch) {
 	*word = (char*) realloc(*word, sizeof(char) * (*size + 2));
 	(*word)[(*size)++] = ch;
@@ -316,17 +338,36 @@ static int isReservedOperator(const char* word) {
 	return 0;
 }
 
-SymbolTable* initTable() {
-	SymbolTable* symbolTable = (SymbolTable*) malloc(sizeof(SymbolTable));
-	symbolTable->entries = (Table**) malloc(100 * sizeof(Table*));
+/**
+ * @brief Initializes a new Table structure.
+ *
+ * This function allocates memory for a Table structure and its entries.
+ * It initializes each entry to NULL.
+ *
+ * @return A pointer to the newly initialized Table structure.
+ */
+Table* initTable() {
+	Table* table = (Table*) malloc(sizeof(Table));
+	table->entries = (Entry**) malloc(100 * sizeof(Entry*));
 
 	for (int i = 0; i < 100; i++) {
-		symbolTable->entries[i] = NULL;
+		table->entries[i] = NULL;
 	}
 
-	return symbolTable;
+	return table;
 }
 
+/**
+ * @brief Computes a hash value for a given key.
+ *
+ * This function takes a string key and computes its hash value using a 
+ * simple hash function. The hash value is then modded by the table size 
+ * to ensure it fits within the bounds of the hash table.
+ *
+ * @param key The string key to be hashed.
+ * @param tableSize The size of the hash table.
+ * @return The computed hash value modded by the table size.
+ */
 static unsigned int hash(char* key, int tableSize) {
 	unsigned int hash = 0;
 
@@ -337,32 +378,63 @@ static unsigned int hash(char* key, int tableSize) {
 	return hash % tableSize;
 }
 
-static void insertTable(SymbolTable* symbolTable, char* key, Token* token) {
-	unsigned int index = hash(key, sizeof(symbolTable->entries) / sizeof(Table*));
-    Table* table = (Table*) malloc(sizeof(Table));
+/**
+ * @brief Inserts a new entry into the hash table.
+ *
+ * This function creates a new entry with the given key and token, computes the hash index for the key,
+ * and inserts the entry into the hash table at the computed index.
+ *
+ * @param table A pointer to the hash table where the entry will be inserted.
+ * @param key A string representing the key for the new entry.
+ * @param token A pointer to the token associated with the key.
+ */
+static void insertTable(Table* table, char* key, Token* token) {
+	unsigned int index = hash(key, sizeof(table->entries) / sizeof(Entry*));
+    Entry* entry = (Entry*) malloc(sizeof(Entry));
 
-	table->key = key;
-	table->token = token;
-	table->next = symbolTable->entries[index];
-	symbolTable->entries[index] = table;
+	entry->key = key;
+	entry->token = token;
+	entry->next = table->entries[index];
+	table->entries[index] = entry;
 }
 
-Token* searchTable(SymbolTable* symbolTable, char* key) {
-    unsigned int index = hash(key, sizeof(symbolTable->entries) / sizeof(Table*));
-    Table* table = symbolTable->entries[index];
+/**
+ * @brief Searches for a token in the hash table using the given key.
+ *
+ * This function searches the hash table for an entry with the specified key.
+ * If the key is found, the associated token is returned. If the key is not found,
+ * the function returns NULL.
+ *
+ * @param table A pointer to the hash table to search.
+ * @param key The key to search for in the hash table.
+ * @return A pointer to the token associated with the key, or NULL if the key is not found.
+ */
+Token* searchTable(Table* table, char* key) {
+    unsigned int index = hash(key, sizeof(table->entries) / sizeof(Entry*));
+    Entry* entry = table->entries[index];
 
-    while (table != NULL) {
-        if (strcmp(table->key, key) == 0) {
-            return table->token;
+    while (entry != NULL) {
+        if (strcmp(entry->key, key) == 0) {
+            return entry->token;
         }
 
-        table = table->next;
+        entry = entry->next;
     }
 	
     return NULL;
 }
 
-static Token* createToken(TokenType type, char* name, char* word, int linha, int coluna) {
+/**
+ * @brief Creates a new Token with the specified attributes.
+ *
+ * @param type The type of the token.
+ * @param name The name of the token.
+ * @param word The word associated with the token.
+ * @param row The line number where the token is found.
+ * @param column The column number where the token is found.
+ * @return Token* A pointer to the newly created Token.
+ */
+static Token* createToken(TokenType type, char* name, char* word, int row, int column) {
 	Token* token = (Token*) malloc(sizeof(Token));
 
 	token->type = type;

@@ -68,4 +68,3 @@
 <0, Reserved-word, 'end'> : <22, 6>
 <0, Reserved-word, 'end'> : <23, 3>
 <5, Symbol, '.'> : <23, 4>
-<8, EOF, 'EOF'> : <23, 4>
