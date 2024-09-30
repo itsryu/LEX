@@ -15,11 +15,11 @@
 <0, Reserved-word, 'begin'> : <7, 5>
 <3, Identifier, 'x'> : <8, 4>
 <4, Assignment Operator, ':='> : <8, 7>
-<1, Integer value, '10'> : <8, 10>
+<6, Integer number, '10'> : <8, 10>
 <5, Symbol, ';'> : <8, 11>
 <3, Identifier, 'y'> : <9, 4>
 <4, Assignment Operator, ':='> : <9, 7>
-<1, Integer value, '20'> : <9, 10>
+<6, Integer number, '20'> : <9, 10>
 <5, Symbol, ';'> : <9, 11>
 <3, Identifier, 'z'> : <10, 4>
 <4, Assignment Operator, ':='> : <10, 7>
@@ -27,7 +27,7 @@
 <4, Binary Arithmetic Operator, '-'> : <10, 11>
 <3, Identifier, 'y'> : <10, 13>
 <4, Binary Arithmetic Operator, '*'> : <10, 15>
-<1, Real value, '2.5'> : <10, 19>
+<6, Real number, '2.5'> : <10, 19>
 <5, Symbol, ';'> : <10, 20>
 <0, Reserved-word, 'if'> : <12, 5>
 <3, Identifier, 'x'> : <12, 7>
@@ -38,32 +38,32 @@
 <4, Assignment Operator, ':='> : <13, 10>
 <3, Identifier, 'x'> : <13, 12>
 <4, Binary Arithmetic Operator, '-'> : <13, 14>
-<1, Integer value, '1'> : <13, 16>
+<6, Integer number, '1'> : <13, 16>
 <5, Symbol, ';'> : <13, 17>
 <0, Reserved-word, 'else'> : <14, 7>
 <3, Identifier, 'y'> : <15, 7>
 <4, Assignment Operator, ':='> : <15, 10>
 <3, Identifier, 'y'> : <15, 12>
 <4, Binary Arithmetic Operator, '+'> : <15, 14>
-<1, Integer value, '1'> : <15, 16>
+<6, Integer number, '1'> : <15, 16>
 <5, Symbol, ';'> : <15, 17>
 <0, Reserved-word, 'while'> : <17, 8>
 <3, Identifier, 'z'> : <17, 10>
 <4, Relational Operator, '<='> : <17, 13>
-<1, Integer value, '100'> : <17, 17>
+<6, Integer number, '100'> : <17, 17>
 <0, Reserved-word, 'do'> : <17, 20>
 <0, Reserved-word, 'begin'> : <19, 8>
 <3, Identifier, 'z'> : <20, 7>
 <4, Assignment Operator, ':='> : <20, 10>
 <3, Identifier, 'z'> : <20, 12>
 <4, Binary Arithmetic Operator, '*'> : <20, 14>
-<1, Real value, '1.5'> : <20, 18>
+<6, Real number, '1.5'> : <20, 18>
 <5, Symbol, ';'> : <20, 19>
 <3, Identifier, 'x'> : <21, 7>
 <4, Assignment Operator, ':='> : <21, 10>
 <3, Identifier, 'x'> : <21, 12>
 <4, Binary Arithmetic Operator, '+'> : <21, 14>
-<1, Integer value, '2'> : <21, 16>
+<6, Integer number, '2'> : <21, 16>
 <5, Symbol, ';'> : <21, 17>
 <0, Reserved-word, 'end'> : <22, 6>
 <0, Reserved-word, 'end'> : <23, 3>

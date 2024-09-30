@@ -65,7 +65,7 @@ Token* lexerAnalysis(Table* table) {
 						break;
 					}
 
-					// Identificando si­mbolos:
+					// Identificando siï¿½mbolos:
 					if(ch == SMB_OBC || ch == SMB_CBC || ch == SMB_SEM || ch == SMB_OPA || ch == SMB_CPA || ch == SMB_DOT || ch == SMB_COM || ch == SMB_COLON || ch == SMB_SQT || ch == SMB_DQT) {
 						addWord(&word, &size, ch);
 
@@ -155,7 +155,7 @@ Token* lexerAnalysis(Table* table) {
 						ungetc(ch, input);
 						column--;
 
-						Token* token = createToken(RESERVED_TYPE, "Integer value", word, row, column);
+						Token* token = createToken(NUMBER, "Integer number", word, row, column);
 						insertTable(table, word, token);
 						return token;
 					}
@@ -173,7 +173,7 @@ Token* lexerAnalysis(Table* table) {
 						ungetc(ch, input);
 						column--;
 
-						Token* token = createToken(RESERVED_TYPE, "Real value", word, row, column);
+						Token* token = createToken(NUMBER, "Real number", word, row, column);
 						insertTable(table, word, token);
 						return token;
 					}
@@ -200,7 +200,7 @@ Token* lexerAnalysis(Table* table) {
 				}
 
 			// q5:
-			// Identificando si­mbolos:
+			// Identificando simbolos:
 			case 5:
 				{
 					if(ch == OP_EQU && word[size - 1] == SMB_COLON) {
