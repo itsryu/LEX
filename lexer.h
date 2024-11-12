@@ -63,6 +63,7 @@ typedef struct Token {
     int row;
     int column;
     TokenType type;
+    struct Token* next;
 } Token;
 
 /**

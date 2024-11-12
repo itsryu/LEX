@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "lexer.h"
+#include "parser.h"
 
 static void saveFile(Token* token);
 
@@ -53,8 +54,17 @@ int main(int argc, char** argv) {
 					output = fopen("./output/output.lex", "w");
 
 					while((token = lexerAnalysis(table)) && token->type != ERROR && token->type != END_OF_FILE && token != NULL) {
-						printf("<%d, %s, '%s'> : <%d, %d>\n", token->type, token->name, token->word, token->row, token->column);
 						saveFile(token);
+					}
+
+					printf("Table:\n");
+					for(int i = 0; i < sizeof(table->entries) / sizeof(Entry*); i++) {
+						Entry* entry = table->entries[i];
+
+						while(entry != NULL) {
+							printf("%s: <%d, %s, '%s'> : <%d, %d>\n", entry->key, entry->token->type, entry->token->name, entry->token->word, entry->token->row, entry->token->column);
+							entry = entry->next;
+						}
 					}
 
 					free(token);

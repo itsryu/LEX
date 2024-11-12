@@ -442,6 +442,7 @@ static Token* createToken(TokenType type, char* name, char* word, int row, int c
 	token->word = word;
 	token->row = row;
 	token->column = column;
+	token->next = NULL;
 
 	return token;
 }
