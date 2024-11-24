@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "lexer.h"
-#include "parser.h"
+#include "includes/lexer.h"
+#include "includes/parser.h"
 
-static void saveFile(Token* token);
+static void saveFile(Token *token);
 
 /**
  * @file main.c
@@ -23,52 +23,67 @@ static void saveFile(Token* token);
  * @param argv The array of command-line arguments.
  * @return Returns 0 on success, or 1 on error.
  */
-int main(int argc, char** argv) {
-	if(argc == 0 || argv[1] == NULL) {
+int main(int argc, char **argv)
+{
+	if (argc == 0 || argv[1] == NULL)
+	{
 		printf("Argument not specified, use:\n\t--help\n");
 		return 1;
-	} else {
-		if(strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0) {
+	}
+	else
+	{
+		if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)
+		{
 			printf("Usage:\n\t--file <file>\t\tReads a pascal file and do the lexical analysis\n");
 			return 0;
 		}
 
-		if(strcmp(argv[1], "--file") != 0 || strcmp(argv[1], "-f") != 0 && argv[2] == NULL) {
+		if (strcmp(argv[1], "--file") != 0 || strcmp(argv[1], "-f") != 0 && argv[2] == NULL)
+		{
 			printf("File not specified:\n\t--file <file>\n");
 			return 1;
-		} else {
+		}
+		else
+		{
 			const char *file_ext = strrchr(argv[2], '.');
 
-			if (!file_ext || strcmp(file_ext, ".pas") != 0) {
+			if (!file_ext || strcmp(file_ext, ".pas") != 0)
+			{
 				printf("Invalid file extension. Please provide a .pas file.\n");
 				return 1;
-			} else {
+			}
+			else
+			{
 				input = fopen(argv[2], "r");
 
-				if(input == NULL) {
+				if (input == NULL)
+				{
 					printf("File not found:\n\t--file <file>\n");
 					return 1;
-				} else {
-					Token* token;
-					Table* table = initTable();
+				}
+				else
+				{
+					Token *token;
+					Table *table = initTable();
 					output = fopen("./output/output.lex", "w");
 
-					while((token = lexerAnalysis(table)) && token->type != ERROR && token->type != END_OF_FILE && token != NULL) {
-						saveFile(token);
+					while ((token = lexerAnalysis(table)) && token->type != ERROR && token->type != END_OF_FILE && token != NULL);
+
+					Entry *entry = table->entries[0];
+
+					while (entry != NULL)
+					{
+						printf("<%d, %s, '%s'> : <%d, %d>\n", entry->token->type, entry->token->name, entry->token->word, entry->token->row, entry->token->column);
+						saveFile(entry->token);
+						entry = entry->next;
 					}
 
-					printf("Table:\n");
-					for(int i = 0; i < sizeof(table->entries) / sizeof(Entry*); i++) {
-						Entry* entry = table->entries[i];
-
-						while(entry != NULL) {
-							printf("%s: <%d, %s, '%s'> : <%d, %d>\n", entry->key, entry->token->type, entry->token->name, entry->token->word, entry->token->row, entry->token->column);
-							entry = entry->next;
-						}
-					}
+					ASTNode *ast = parseTokens(table);
 
 					free(token);
 					free(table);
+					fclose(input);
+					fclose(output);
 				}
 			}
 		}
@@ -84,6 +99,7 @@ int main(int argc, char** argv) {
  *
  * @param token A pointer to the Token structure containing the token information.
  */
-static void saveFile(Token* token) {
+static void saveFile(Token *token)
+{
 	fprintf(output, "<%d, %s, '%s'> : <%d, %d>\n", token->type, token->name, token->word, token->row, token->column);
 }

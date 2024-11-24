@@ -103,9 +103,10 @@ typedef struct Entry {
  */
 typedef struct {
     Entry** entries;
+    int entryCount;
 } Table;
 
-// Operadores:
+// operators:
 #define OP_SUM '+'
 #define OP_SUB '-'
 #define OP_DIV '/'
@@ -114,13 +115,13 @@ typedef struct {
 #define OP_LT '<'
 #define OP_GT '>'
 
-// Operadores reservados:
+// reserved operators:
 #define RESERVED_OP_NOT "not"
 #define RESERVED_OP_AND "and"
 #define RESERVED_OP_OR "or"
 #define RESERVED_OP_MOD "mod"
 
-// Simbolos
+// symbols
 #define SMB_OBC '{'
 #define SMB_CBC '}'
 #define SMB_SEM ';'
@@ -133,7 +134,7 @@ typedef struct {
 #define SMB_DQT '\"'
 #define SMB_UNDER '_'
 
-// Palavras reservadas:
+// reserved words:
 #define RESERVED_WORD_PROGRAM "program"
 #define RESERVED_WORD_VAR "var"
 #define RESERVED_WORD_IF "if"
@@ -162,7 +163,7 @@ typedef struct {
 #define RESERVED_WORD_DO "do"
 #define RESERVED_WORD_IN "in"
 
-// Tipos reservados:
+// reserved types:
 #define RESERVED_TYPE_INTEGER "integer"
 #define RESERVED_TYPE_REAL "real"
 #define RESERVED_TYPE_BOOLEAN "boolean"
@@ -178,7 +179,7 @@ typedef struct {
 #define RESERVED_TYPE_COMP "comp"
 #define RESERVED_TYPE_CURRENCY "currency"
 
-// Especiais
+// specials
 #define TAB '\t'
 #define SPACE ' '
 #define NEW_LINE '\n'
@@ -186,7 +187,7 @@ typedef struct {
 
 FILE *input, *output;
 
-// Funcoes:
+// functions:
 Token* lexerAnalysis(Table* table);
 Table* initTable();
 Token* searchTable(Table* symbolTable, char* key);

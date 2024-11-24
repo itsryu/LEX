@@ -2,7 +2,7 @@
 
 set dir=%~dp0
 
-cd %dir% && gcc ./lexer.c ./parser.c ./main.c -o main.exe
+cd %dir% && gcc ./src/lexer/lexer.c ./src/parser/parser.c ./src/main.c -o main.exe
 
 if %errorlevel% equ 0 (
     cls && start cmd /k main.exe --file ./tests/T003.pas
