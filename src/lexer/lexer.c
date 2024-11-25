@@ -1,8 +1,9 @@
-#include "../includes/lexer.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "../includes/lexer.h"
+#include "../includes/tokens.h"
 
 static int column = 0, row = 1;
 static char ch;

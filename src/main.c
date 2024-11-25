@@ -69,18 +69,25 @@ int main(int argc, char **argv)
 
 					while ((token = lexerAnalysis(table)) && token->type != ERROR && token->type != END_OF_FILE && token != NULL);
 
+					free(token);
+
 					Entry *entry = table->entries[0];
 
 					while (entry != NULL)
 					{
-						printf("<%d, %s, '%s'> : <%d, %d>\n", entry->token->type, entry->token->name, entry->token->word, entry->token->row, entry->token->column);
+						printf("LEX: <%d, %s, '%s'> : <%d, %d>\n", entry->token->type, entry->token->name, entry->token->word, entry->token->row, entry->token->column);
 						saveFile(entry->token);
 						entry = entry->next;
 					}
 
 					ASTNode *ast = parseTokens(table);
 
-					free(token);
+					while(ast != NULL)
+					{
+						printf("AST: <%d, %s>\n", ast->type, ast->value);
+						ast = ast->left;
+					}
+
 					free(table);
 					fclose(input);
 					fclose(output);

@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 #include "../includes/lexer.h"
 #include "../includes/parser.h"
+#include "../includes/errors.h"
+#include "../includes/tokens.h"
 
-ASTNode *createNode(int type, const char *value);
+ASTNode *createNode(int type, char *value);
 void freeNode(ASTNode *node);
 int isValidNumber(const char *str);
 ASTNode *parseRepetitive(Table *table, Entry **currentEntry);
@@ -25,17 +26,18 @@ ASTNode *parseTerm(Table *table, Entry **currentEntry);
 ASTNode *parseFactor(Table *table, Entry **currentEntry);
 ASTNode *parseTokens(Table *table);
 
-ASTNode *createNode(int type, const char *value)
+ASTNode *createNode(int type, char *value)
 {
     ASTNode *node = (ASTNode *)malloc(sizeof(ASTNode));
+
     if (!node)
     {
-        fprintf(stderr, "Memory allocation failed\n");
+        fprintf(stderr, ERR_MEMORY_ALLOCATION_FAILED);
         exit(EXIT_FAILURE);
     }
 
     node->type = type;
-    node->value = value ? strdup(value) : NULL;
+    node->value = value;
     node->left = NULL;
     node->right = NULL;
 
@@ -56,91 +58,15 @@ void freeNode(ASTNode *node)
 
 int isValidNumber(const char *str)
 {
-    if (*str == '\0')
+    if (*str == END_OF_STRING)
         return 0;
     while (*str)
     {
-        if (!isdigit(*str) && *str != '.')
+        if ((*str < '0' || *str > '9') && *str != SMB_DOT)
             return 0;
         str++;
     }
     return 1;
-}
-
-ASTNode *parseProgram(Table *table, Entry **currentEntry)
-{
-    Entry *entry = *currentEntry;
-
-    if (entry->token->type != RESERVED_WORD || strcmp(entry->token->word, RESERVED_WORD_PROGRAM) != 0)
-    {
-        fprintf(stderr, "Syntax error: expected 'program' at %d:%d\n", entry->token->row, entry->token->column);
-        exit(EXIT_FAILURE);
-    }
-
-    ASTNode *programNode = createNode(entry->token->type, entry->token->word);
-
-    if (entry->next == NULL)
-    {
-        fprintf(stderr, "Syntax error: expected identifier after 'program' at %d:%d\n", entry->token->row, entry->token->column);
-        freeNode(programNode);
-        exit(EXIT_FAILURE);
-    }
-
-    *currentEntry = entry->next;
-    entry = *currentEntry;
-
-    if (entry->token->type != IDENTIFIER)
-    {
-        fprintf(stderr, "Syntax error: expected identifier after 'program' at %d:%d\n", entry->token->row, entry->token->column);
-        freeNode(programNode);
-        exit(EXIT_FAILURE);
-    }
-
-    ASTNode *idNode = createNode(entry->token->type, entry->token->word);
-    programNode->right = idNode;
-
-    if (entry->next == NULL)
-    {
-        fprintf(stderr, "Syntax error: expected ';' after program identifier at %d:%d\n", entry->token->row, entry->token->column);
-        freeNode(programNode);
-        exit(EXIT_FAILURE);
-    }
-
-    *currentEntry = entry->next;
-    entry = *currentEntry;
-
-    if (strcmp(entry->token->word, SYMBOL_SEM) != 0)
-    {
-        fprintf(stderr, "Syntax error: expected ';' after program identifier at %d:%d\n", entry->token->row, entry->token->column);
-        freeNode(programNode);
-        exit(EXIT_FAILURE);
-    }
-
-    if (entry->next == NULL)
-    {
-        fprintf(stderr, "Syntax error: expected block after program declaration at %d:%d\n", entry->token->row, entry->token->column);
-        freeNode(programNode);
-        exit(EXIT_FAILURE);
-    }
-
-    *currentEntry = entry->next;
-    entry = *currentEntry;
-
-    ASTNode *blockNode = parseBlock(table, currentEntry);
-
-    programNode->left = blockNode;
-    entry = *currentEntry;
-
-    if (strcmp(entry->token->word, SYMBOL_DOT) != 0)
-    {
-        fprintf(stderr, "Syntax error: expected '.' after program block at %d:%d\n", entry->token->row, entry->token->column);
-        freeNode(programNode);
-        exit(EXIT_FAILURE);
-    }
-
-    *currentEntry = entry->next;
-
-    return programNode;
 }
 
 ASTNode *parseBlock(Table *table, Entry **currentEntry)
@@ -166,7 +92,7 @@ ASTNode *parseVarDeclaration(Table *table, Entry **currentEntry)
     {
         if (entry->next == NULL)
         {
-            fprintf(stderr, "Syntax error: expected identifier after 'var' at %d:%d\n", entry->token->row, entry->token->column);
+            fprintf(stderr, ERR_EXPECTED_IDENTIFIER_AFTER_VAR, entry->token->row, entry->token->column);
             exit(EXIT_FAILURE);
         }
 
@@ -177,7 +103,7 @@ ASTNode *parseVarDeclaration(Table *table, Entry **currentEntry)
         varDeclNode->right = declNode;
         entry = *currentEntry;
 
-        if (entry && strcmp(entry->token->word, ";") == 0)
+        if (entry && strcmp(entry->token->word, SYMBOL_SEM) == 0)
         {
             *currentEntry = entry->next;
             entry = *currentEntry;
@@ -200,16 +126,16 @@ ASTNode *parseDeclaration(Table *table, Entry **currentEntry)
     declNode->left = idListNode;
     entry = *currentEntry;
 
-    if (strcmp(entry->token->word, ":") != 0)
+    if (strcmp(entry->token->word, SYMBOL_COLON) != 0)
     {
-        fprintf(stderr, "Syntax error: expected ':' or ',' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_COLON_OR_COMMA, entry->token->row, entry->token->column);
         freeNode(declNode);
         exit(EXIT_FAILURE);
     }
 
     if (entry->next == NULL)
     {
-        fprintf(stderr, "Syntax error: expected type after ':' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_TYPE_AFTER_COLON, entry->token->row, entry->token->column);
         exit(EXIT_FAILURE);
     }
 
@@ -218,7 +144,7 @@ ASTNode *parseDeclaration(Table *table, Entry **currentEntry)
 
     if (entry->token->type != RESERVED_TYPE)
     {
-        fprintf(stderr, "Syntax error: expected type after ':' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_TYPE_AFTER_COLON, entry->token->row, entry->token->column);
         freeNode(declNode);
         exit(EXIT_FAILURE);
     }
@@ -226,9 +152,9 @@ ASTNode *parseDeclaration(Table *table, Entry **currentEntry)
     ASTNode *typeNode = createNode(entry->token->type, entry->token->word);
     declNode->right = typeNode;
 
-    if (entry->next == NULL || strcmp(entry->next->token->word, ";") != 0)
+    if (entry->next == NULL || strcmp(entry->next->token->word, SYMBOL_SEM) != 0)
     {
-        fprintf(stderr, "Syntax error: expected ';' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_SEMICOLON, entry->token->row, entry->token->column);
         freeNode(declNode);
         exit(EXIT_FAILURE);
     }
@@ -251,7 +177,7 @@ ASTNode *parseIdentifierList(Table *table, Entry **currentEntry)
 
         if (entry->next == NULL)
         {
-            fprintf(stderr, "Syntax error: expected ',' or ':' at %d:%d\n", entry->token->row, entry->token->column);
+            fprintf(stderr, ERR_EXPECTED_COMMA_OR_COLON, entry->token->row, entry->token->column);
             freeNode(idListNode);
             exit(EXIT_FAILURE);
         }
@@ -259,11 +185,11 @@ ASTNode *parseIdentifierList(Table *table, Entry **currentEntry)
         *currentEntry = entry->next;
         entry = *currentEntry;
 
-        if (entry && strcmp(entry->token->word, ",") == 0)
+        if (entry && strcmp(entry->token->word, SYMBOL_COM) == 0)
         {
             if (entry->next == NULL || entry->next->token->type != IDENTIFIER)
             {
-                fprintf(stderr, "Syntax error: expected identifier after ',' at %d:%d\n", entry->token->row, entry->token->column);
+                fprintf(stderr, ERR_EXPECTED_IDENTIFIER_AFTER_COMMA, entry->token->row, entry->token->column);
                 freeNode(idListNode);
                 exit(EXIT_FAILURE);
             }
@@ -286,7 +212,7 @@ ASTNode *parseCompoundStatement(Table *table, Entry **currentEntry)
 
     if (entry->token->type != RESERVED_WORD || strcmp(entry->token->word, RESERVED_WORD_BEGIN) != 0)
     {
-        fprintf(stderr, "Syntax error: expected 'begin' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_BEGIN, entry->token->row, entry->token->column);
         exit(EXIT_FAILURE);
     }
 
@@ -294,7 +220,7 @@ ASTNode *parseCompoundStatement(Table *table, Entry **currentEntry)
 
     if (entry->next == NULL)
     {
-        fprintf(stderr, "Syntax error: expected statement after 'begin' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_STATEMENT_AFTER_BEGIN, entry->token->row, entry->token->column);
         exit(EXIT_FAILURE);
     }
 
@@ -327,7 +253,7 @@ ASTNode *parseCompoundStatement(Table *table, Entry **currentEntry)
         {
             if (entry->next == NULL)
             {
-                fprintf(stderr, "Syntax error: expected 'end' at %d:%d\n", entry->token->row, entry->token->column);
+                fprintf(stderr, ERR_EXPECTED_END, entry->token->row, entry->token->column);
                 exit(EXIT_FAILURE);
             }
         }
@@ -365,7 +291,7 @@ ASTNode *parseStatement(Table *table, Entry **currentEntry)
     }
     else
     {
-        fprintf(stderr, "Syntax error: invalid command '%s' at %d:%d\n", entry->token->word, entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_INVALID_COMMAND, entry->token->word, entry->token->row, entry->token->column);
         exit(EXIT_FAILURE);
     }
 }
@@ -376,7 +302,7 @@ ASTNode *parseConditional(Table *table, Entry **currentEntry)
 
     if (entry->token->type != RESERVED_WORD || strcmp(entry->token->word, RESERVED_WORD_IF) != 0)
     {
-        fprintf(stderr, "Syntax error: expected 'if' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_IF, entry->token->row, entry->token->column);
         exit(EXIT_FAILURE);
     }
 
@@ -384,7 +310,7 @@ ASTNode *parseConditional(Table *table, Entry **currentEntry)
 
     if (entry->next == NULL)
     {
-        fprintf(stderr, "Syntax error: expected expression after 'if' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_EXPRESSION_AFTER_IF, entry->token->row, entry->token->column);
         freeNode(ifNode);
         exit(EXIT_FAILURE);
     }
@@ -398,14 +324,14 @@ ASTNode *parseConditional(Table *table, Entry **currentEntry)
 
     if (entry->token->type != RESERVED_WORD || strcmp(entry->token->word, RESERVED_WORD_THEN) != 0)
     {
-        fprintf(stderr, "Syntax error: expected 'then' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_THEN, entry->token->row, entry->token->column);
         freeNode(ifNode);
         exit(EXIT_FAILURE);
     }
 
     if (entry->next == NULL)
     {
-        fprintf(stderr, "Syntax error: expected statement after 'then' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_STATEMENT_AFTER_THEN, entry->token->row, entry->token->column);
         freeNode(ifNode);
         exit(EXIT_FAILURE);
     }
@@ -421,7 +347,7 @@ ASTNode *parseConditional(Table *table, Entry **currentEntry)
     {
         if (entry->next == NULL)
         {
-            fprintf(stderr, "Syntax error: expected statement after 'else' at %d:%d\n", entry->token->row, entry->token->column);
+            fprintf(stderr, ERR_EXPECTED_STATEMENT_AFTER_ELSE, entry->token->row, entry->token->column);
             freeNode(ifNode);
             exit(EXIT_FAILURE);
         }
@@ -443,9 +369,9 @@ ASTNode *parseRepetitive(Table *table, Entry **currentEntry)
 {
     Entry *entry = *currentEntry;
 
-    if (entry->token->type != RESERVED_WORD || strcmp(entry->token->word, "while") != 0)
+    if (entry->token->type != RESERVED_WORD || strcmp(entry->token->word, RESERVED_WORD_WHILE) != 0)
     {
-        fprintf(stderr, "Syntax error: expected 'while' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_WHILE, entry->token->row, entry->token->column);
         exit(EXIT_FAILURE);
     }
 
@@ -453,7 +379,7 @@ ASTNode *parseRepetitive(Table *table, Entry **currentEntry)
 
     if (entry->next == NULL)
     {
-        fprintf(stderr, "Syntax error: expected expression after 'while' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_EXPRESSION_AFTER_WHILE, entry->token->row, entry->token->column);
         freeNode(whileNode);
         exit(EXIT_FAILURE);
     }
@@ -465,16 +391,16 @@ ASTNode *parseRepetitive(Table *table, Entry **currentEntry)
     whileNode->left = conditionNode;
     entry = *currentEntry;
 
-    if (entry->token->type != RESERVED_WORD || strcmp(entry->token->word, "do") != 0)
+    if (entry->token->type != RESERVED_WORD || strcmp(entry->token->word, RESERVED_WORD_DO) != 0)
     {
-        fprintf(stderr, "Syntax error: expected 'do' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_DO, entry->token->row, entry->token->column);
         freeNode(whileNode);
         exit(EXIT_FAILURE);
     }
 
     if (entry->next == NULL)
     {
-        fprintf(stderr, "Syntax error: expected statement after 'do' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_STATEMENT_AFTER_DO, entry->token->row, entry->token->column);
         freeNode(whileNode);
         exit(EXIT_FAILURE);
     }
@@ -494,17 +420,17 @@ ASTNode *parseAssignment(Table *table, Entry **currentEntry)
 
     if (entry->token->type != IDENTIFIER)
     {
-        fprintf(stderr, "Syntax error: expected identifier at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_IDENTIFIER, entry->token->row, entry->token->column);
         exit(EXIT_FAILURE);
     }
 
-    ASTNode *assignmentNode = createNode(OPERATOR, ":=");
+    ASTNode *assignmentNode = createNode(OPERATOR, OPERATOR_ASSIGNMENT);
     ASTNode *idNode = createNode(entry->token->type, entry->token->word);
     assignmentNode->left = idNode;
 
     if (entry->next == NULL)
     {
-        fprintf(stderr, "Syntax error: expected ':=' after identifier at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_ASSIGNMENT_OPERATOR, entry->token->row, entry->token->column);
         freeNode(assignmentNode);
         exit(EXIT_FAILURE);
     }
@@ -512,16 +438,16 @@ ASTNode *parseAssignment(Table *table, Entry **currentEntry)
     *currentEntry = entry->next;
     entry = *currentEntry;
 
-    if (entry == NULL || strcmp(entry->token->word, ":=") != 0)
+    if (entry == NULL || strcmp(entry->token->word, OPERATOR_ASSIGNMENT) != 0)
     {
-        fprintf(stderr, "Syntax error: expected ':=' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_ASSIGNMENT_OPERATOR, entry->token->row, entry->token->column);
         freeNode(assignmentNode);
         exit(EXIT_FAILURE);
     }
 
     if (entry->next == NULL)
     {
-        fprintf(stderr, "Syntax error: expected expression after ':=' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_EXPRESSION_AFTER_ASSIGNMENT, entry->token->row, entry->token->column);
         freeNode(assignmentNode);
         exit(EXIT_FAILURE);
     }
@@ -531,7 +457,7 @@ ASTNode *parseAssignment(Table *table, Entry **currentEntry)
 
     if (entry == NULL)
     {
-        fprintf(stderr, "Syntax error: expected expression after ':=' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_EXPRESSION_AFTER_ASSIGNMENT, entry->token->row, entry->token->column);
         freeNode(assignmentNode);
         exit(EXIT_FAILURE);
     }
@@ -540,9 +466,9 @@ ASTNode *parseAssignment(Table *table, Entry **currentEntry)
     assignmentNode->right = exprNode;
     entry = *currentEntry;
 
-    if (entry == NULL || strcmp(entry->token->word, ";") != 0)
+    if (entry == NULL || strcmp(entry->token->word, SYMBOL_SEM) != 0)
     {
-        fprintf(stderr, "Syntax error: expected ';' at %d:%d\n", entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_EXPECTED_SEMICOLON, entry->token->row, entry->token->column);
         freeNode(assignmentNode);
         exit(EXIT_FAILURE);
     }
@@ -565,7 +491,7 @@ ASTNode *parseExpression(Table *table, Entry **currentEntry)
 
         if (entry->next == NULL)
         {
-            fprintf(stderr, "Syntax error: expected expression after '%s' at %d:%d\n", entry->token->word, entry->token->row, entry->token->column);
+            fprintf(stderr, ERR_EXPECTED_EXPRESSION_AFTER_OPERATOR, entry->token->word, entry->token->row, entry->token->column);
             freeNode(expressionNode);
             freeNode(relationNode);
             exit(EXIT_FAILURE);
@@ -576,7 +502,7 @@ ASTNode *parseExpression(Table *table, Entry **currentEntry)
 
         if (entry == NULL)
         {
-            fprintf(stderr, "Syntax error: expected expression after '%s' at %d:%d\n", entry->token->word, entry->token->row, entry->token->column);
+            fprintf(stderr, ERR_EXPECTED_EXPRESSION_AFTER_OPERATOR, entry->token->word, entry->token->row, entry->token->column);
             freeNode(expressionNode);
             freeNode(relationNode);
             exit(EXIT_FAILURE);
@@ -602,7 +528,7 @@ ASTNode *parseSimpleExpression(Table *table, Entry **currentEntry)
 
         if (entry->next == NULL)
         {
-            fprintf(stderr, "Syntax error: expected term after '%s' at %d:%d\n", entry->token->word, entry->token->row, entry->token->column);
+            fprintf(stderr, ERR_EXPECTED_TERM_AFTER_OPERATOR, entry->token->word, entry->token->row, entry->token->column);
             freeNode(simpleExprNode);
             exit(EXIT_FAILURE);
         }
@@ -629,12 +555,12 @@ ASTNode *parseSimpleExpression(Table *table, Entry **currentEntry)
 
         if (entry->next == NULL)
         {
-            fprintf(stderr, "Syntax error: expected term after '%s' at %d:%d\n", entry->token->word, entry->token->row, entry->token->column);
+            fprintf(stderr, ERR_EXPECTED_TERM_AFTER_OPERATOR, entry->token->word, entry->token->row, entry->token->column);
             freeNode(simpleExprNode);
             freeNode(operatorNode);
             exit(EXIT_FAILURE);
         }
-        
+
         *currentEntry = entry->next;
         entry = *currentEntry;
 
@@ -659,7 +585,7 @@ ASTNode *parseTerm(Table *table, Entry **currentEntry)
 
         if (entry->next == NULL)
         {
-            fprintf(stderr, "Syntax error: expected factor after '%s' at %d:%d\n", entry->token->word, entry->token->row, entry->token->column);
+            fprintf(stderr, ERR_EXPECTED_FACTOR_AFTER_OPERATOR, entry->token->word, entry->token->row, entry->token->column);
             freeNode(termNode);
             freeNode(operatorNode);
             exit(EXIT_FAILURE);
@@ -669,7 +595,7 @@ ASTNode *parseTerm(Table *table, Entry **currentEntry)
 
         if (*currentEntry == NULL)
         {
-            fprintf(stderr, "Syntax error: expected factor after '%s' at %d:%d\n", entry->token->word, entry->token->row, entry->token->column);
+            fprintf(stderr, ERR_EXPECTED_FACTOR_AFTER_OPERATOR, entry->token->word, entry->token->row, entry->token->column);
             freeNode(termNode);
             freeNode(operatorNode);
             exit(EXIT_FAILURE);
@@ -695,14 +621,14 @@ ASTNode *parseFactor(Table *table, Entry **currentEntry)
     {
         if (!isValidNumber(entry->token->word))
         {
-            fprintf(stderr, "Syntax error: invalid number '%s' at %d:%d\n", entry->token->word, entry->token->row, entry->token->column);
+            fprintf(stderr, ERR_INVALID_NUMBER, entry->token->word, entry->token->row, entry->token->column);
             exit(EXIT_FAILURE);
         }
         factorNode = createNode(entry->token->type, entry->token->word);
 
         if (entry->next == NULL)
         {
-            fprintf(stderr, "Syntax error: expected expression or ';' at %d:%d\n", entry->token->row, entry->token->column);
+            fprintf(stderr, ERR_EXPECTED_EXPRESSION_OR_SEMICOLON, entry->token->row, entry->token->column);
             freeNode(factorNode);
             exit(EXIT_FAILURE);
         }
@@ -718,7 +644,7 @@ ASTNode *parseFactor(Table *table, Entry **currentEntry)
     {
         if (entry->next == NULL)
         {
-            fprintf(stderr, "Syntax error: expected expression after '(' at %d:%d\n", entry->token->row, entry->token->column);
+            fprintf(stderr, ERR_EXPECTED_EXPRESSION_AFTER_OPEN_PAREN, entry->token->row, entry->token->column);
             exit(EXIT_FAILURE);
         }
 
@@ -730,7 +656,7 @@ ASTNode *parseFactor(Table *table, Entry **currentEntry)
         {
             if (entry->next == NULL)
             {
-                fprintf(stderr, "Syntax error: expected expression or ';' at %d:%d\n", entry->token->row, entry->token->column);
+                fprintf(stderr, ERR_EXPECTED_EXPRESSION_OR_SEMICOLON, entry->token->row, entry->token->column);
                 freeNode(factorNode);
                 exit(EXIT_FAILURE);
             }
@@ -740,25 +666,103 @@ ASTNode *parseFactor(Table *table, Entry **currentEntry)
         }
         else
         {
-            fprintf(stderr, "Syntax error: expected ')' at %d:%d\n", entry->token->row, entry->token->column);
+            fprintf(stderr, ERR_EXPECTED_CLOSE_PAREN, entry->token->row, entry->token->column);
             freeNode(factorNode);
             exit(EXIT_FAILURE);
         }
     }
     else
     {
-        fprintf(stderr, "Syntax error: invalid factor '%s' at %d:%d\n", entry->token->word, entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_INVALID_FACTOR, entry->token->word, entry->token->row, entry->token->column);
         exit(EXIT_FAILURE);
     }
 
     return factorNode;
 }
 
+ASTNode *parseProgram(Table *table, Entry **currentEntry)
+{
+    Entry *entry = *currentEntry;
+
+    if (entry->token->type != RESERVED_WORD || strcmp(entry->token->word, RESERVED_WORD_PROGRAM) != 0)
+    {
+        fprintf(stderr, ERR_EXPECTED_PROGRAM, entry->token->row, entry->token->column);
+        exit(EXIT_FAILURE);
+    }
+
+    ASTNode *programNode = createNode(entry->token->type, entry->token->word);
+
+    if (entry->next == NULL)
+    {
+        fprintf(stderr, ERR_EXPECTED_IDENTIFIER_AFTER_PROGRAM, entry->token->row, entry->token->column);
+        freeNode(programNode);
+        exit(EXIT_FAILURE);
+    }
+
+    *currentEntry = entry->next;
+    entry = *currentEntry;
+
+    if (entry->token->type != IDENTIFIER)
+    {
+        fprintf(stderr, ERR_EXPECTED_IDENTIFIER_AFTER_PROGRAM, entry->token->row, entry->token->column);
+        freeNode(programNode);
+        exit(EXIT_FAILURE);
+    }
+
+    ASTNode *idNode = createNode(entry->token->type, entry->token->word);
+    programNode->right = idNode;
+
+    if (entry->next == NULL)
+    {
+        fprintf(stderr, ERR_EXPECTED_SEMICOLON_AFTER_PROGRAM_IDENTIFIER, entry->token->row, entry->token->column);
+        freeNode(programNode);
+        exit(EXIT_FAILURE);
+    }
+
+    *currentEntry = entry->next;
+    entry = *currentEntry;
+
+    ASTNode *semicolonNode = createNode(entry->token->type, entry->token->word);
+    idNode->right = semicolonNode;
+
+    if (strcmp(entry->token->word, SYMBOL_SEM) != 0)
+    {
+        fprintf(stderr, ERR_EXPECTED_SEMICOLON_AFTER_PROGRAM_IDENTIFIER, entry->token->row, entry->token->column);
+        freeNode(programNode);
+        exit(EXIT_FAILURE);
+    }
+
+    if (entry->next == NULL)
+    {
+        fprintf(stderr, ERR_EXPECTED_BLOCK_AFTER_PROGRAM_DECLARATION, entry->token->row, entry->token->column);
+        freeNode(programNode);
+        exit(EXIT_FAILURE);
+    }
+
+    *currentEntry = entry->next;
+    entry = *currentEntry;
+
+    ASTNode *blockNode = parseBlock(table, currentEntry);
+    programNode->left = blockNode;
+    entry = *currentEntry;
+
+    if (strcmp(entry->token->word, SYMBOL_DOT) != 0)
+    {
+        fprintf(stderr, ERR_EXPECTED_DOT_AFTER_PROGRAM_BLOCK, entry->token->row, entry->token->column);
+        freeNode(programNode);
+        exit(EXIT_FAILURE);
+    }
+
+    *currentEntry = entry->next;
+
+    return programNode;
+}
+
 ASTNode *parseTokens(Table *table)
 {
     if (table->entryCount == 0)
     {
-        fprintf(stderr, "No tokens to parse\n");
+        fprintf(stderr, ERR_NO_TOKENS_TO_PARSE);
         exit(EXIT_FAILURE);
     }
 
