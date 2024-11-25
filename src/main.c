@@ -11,7 +11,7 @@ static void saveFile(Token *token);
  * @file main.c
  * @brief Main entry point for the lexical analysis program.
  *
- * This program reads a Pascal file and performs lexical analysis on it.
+ * This program reads a Pascal file and performs lexical and syntax analysis on it.
  * It supports the following command-line arguments:
  * - `--help` or `-h`: Displays usage information.
  * - `--file <file>` or `-f <file>`: Specifies the Pascal file to be analyzed.

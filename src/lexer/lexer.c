@@ -4,16 +4,10 @@
 
 #include "../includes/lexer.h"
 #include "../includes/tokens.h"
+#include "../includes/errors.h"
 
 static int column = 0, row = 1;
 static char ch;
-static void addWord(char **word, int *size, const char ch);
-static Token *createToken(TokenType type, char *name, char *word, int row, int column);
-static void insertTable(Table *table, char *key, Token *token);
-static void showError(const char *message, const int row, const int column);
-static int isReservedWord(const char *word);
-static int isReservedType(const char *word);
-static int isReservedOperator(const char *word);
 
 /**
  * @brief Performs lexical analysis on the input and generates tokens.
@@ -38,17 +32,41 @@ Token *lexerAnalysis(Table *table)
 		switch (state)
 		{
 		// q0:
-		// Estado inicial, identificando espacos em branco, valores numericos,
-		// valores alfanumericos, valores simbolicos e operadores:
+		// initial state, identifying white spaces, numeric values,
+		// alphanumeric values, symbolic values, and operators:
 		case 0:
 		{
-			// identyfing spaces:
-			if (ch == SPACE || ch == TAB || ch == NEW_LINE)
+			// identyfing spaces, tabs, new lines and comments:
+			if (ch == SPACE || ch == TAB || ch == NEW_LINE || ch == '/')
 			{
 				if (ch == NEW_LINE)
 				{
 					row++;
 					column = 0;
+				}
+
+				if (ch == '/')
+				{
+					ch = fgetc(input);
+					column++;
+
+					if (ch == '/')
+					{
+						while ((ch = fgetc(input)) != EOF && ch != NEW_LINE)
+						{
+							column++;
+						}
+						if (ch == NEW_LINE)
+						{
+							row++;
+							column = 0;
+						}
+					}
+					else
+					{
+						ungetc(ch, input);
+						column--;
+					}
 				}
 
 				break;
@@ -115,20 +133,13 @@ Token *lexerAnalysis(Table *table)
 			}
 
 			addWord(&word, &size, ch);
-
-			char message[50] = "Unknown character: '";
-			message[20] = ch;
-			strcat(message, "'");
-
-			showError(message, row, column);
-			Token *token = createToken(ERROR, "LexicalError", word, row, column);
-			insertTable(table, message, token);
-			return token;
+			fprintf(stderr, ERR_UNKOWN_CHARACTER, ch, row, column);
+			return NULL;
 		}
 
 		// q1:
-		// Lidando com valores alfanumericos e indentificando palavras reservadas
-		// e identificadores:
+		// handling alphanumeric values and identifying reserved words
+		// and identifiers:
 		case 1:
 		{
 			if (ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9' || ch == SMB_UNDER)
@@ -170,7 +181,7 @@ Token *lexerAnalysis(Table *table)
 		}
 
 		// q2:
-		// Lidando com nemeros inteiros e identificando possiveis numeros reais:
+		// handling integers and identifying possible real numbers:
 		case 2:
 		{
 			if (ch >= '0' && ch <= '9')
@@ -196,7 +207,7 @@ Token *lexerAnalysis(Table *table)
 		}
 
 		// q3:
-		// Lidando com numeros reais:
+		// handling real numbers:
 		case 3:
 		{
 			if (ch >= '0' && ch <= '9')
@@ -217,7 +228,7 @@ Token *lexerAnalysis(Table *table)
 		}
 
 		// q4:
-		// Lidando com operadores:
+		// handling relational operators:
 		case 4:
 		{
 			if (ch == OP_EQU && (word[size - 1] == OP_GT || word[size - 1] == OP_LT))
@@ -238,7 +249,7 @@ Token *lexerAnalysis(Table *table)
 		}
 
 		// q5:
-		// Identificando simbolos:
+		// identifying assignment operators and symbols:
 		case 5:
 		{
 			if (ch == OP_EQU && word[size - 1] == SMB_COLON)
@@ -261,7 +272,7 @@ Token *lexerAnalysis(Table *table)
 		}
 
 		// q6:
-		// Identificando strings:
+		// identifying strings:
 		case 6:
 		{
 			if (ch == SMB_SQT || ch == SMB_DQT)
@@ -273,10 +284,8 @@ Token *lexerAnalysis(Table *table)
 			}
 			else if (ch == END_OF_FILE || ch == NEW_LINE)
 			{
-				showError("String not closed", row, column);
-				Token *token = createToken(ERROR, "LexicalError", word, row, column);
-				insertTable(table, word, token);
-				return token;
+				fprintf(stderr, ERR_STRING_NOT_CLOSED, row, column);
+				return NULL;
 			}
 			else
 			{
@@ -288,8 +297,8 @@ Token *lexerAnalysis(Table *table)
 
 		default:
 		{
-			showError("Unknown state", row, column);
-			break;
+			fprintf(stderr, ERR_UNKOWN_STATE, row, column);
+			return NULL;
 		}
 		}
 	}
@@ -336,22 +345,6 @@ Token *lexerAnalysis(Table *table)
 	return token;
 }
 
-static void showError(const char *message, const int row, const int column)
-{
-	printf("LexicalError: %s at %d:%d\n", message, row, column);
-	fprintf(output, "LexicalError: %s at %d:%d\n", message, row, column);
-}
-
-/**
- * @brief Adds a character to a dynamically allocated word array.
- *
- * This function appends a given character to the end of a dynamically
- * allocated word array, resizing the array if necessary.
- *
- * @param word A pointer to the dynamically allocated word array.
- * @param size A pointer to the current size of the word array.
- * @param ch The character to be added to the word array.
- */
 static void addWord(char **word, int *size, const char ch)
 {
 	*word = (char *)realloc(*word, sizeof(char) * (*size + 2));
@@ -430,14 +423,6 @@ static int isReservedOperator(const char *word)
 	return 0;
 }
 
-/**
- * @brief Initializes a new Table structure.
- *
- * This function allocates memory for a Table structure and its entries.
- * It initializes each entry to NULL.
- *
- * @return A pointer to the newly initialized Table structure.
- */
 Table *initTable()
 {
 	Table *table = (Table *)malloc(sizeof(Table));
@@ -453,17 +438,6 @@ Table *initTable()
 	return table;
 }
 
-/**
- * @brief Computes a hash value for a given key.
- *
- * This function takes a string key and computes its hash value using a
- * simple hash function. The hash value is then modded by the table size
- * to ensure it fits within the bounds of the hash table.
- *
- * @param key The string key to be hashed.
- * @param tableSize The size of the hash table.
- * @return The computed hash value modded by the table size.
- */
 static unsigned int hash(char *key, int tableSize)
 {
 	unsigned int hash = 0;
@@ -476,16 +450,6 @@ static unsigned int hash(char *key, int tableSize)
 	return hash % tableSize;
 }
 
-/**
- * @brief Inserts a new entry into the hash table.
- *
- * This function creates a new entry with the given key and token, computes the hash index for the key,
- * and inserts the entry into the hash table at the computed index.
- *
- * @param table A pointer to the hash table where the entry will be inserted.
- * @param key A string representing the key for the new entry.
- * @param token A pointer to the token associated with the key.
- */
 static void insertTable(Table *table, char *key, Token *token)
 {
 	unsigned int index = hash(key, sizeof(table->entries) / sizeof(Entry *));
@@ -512,17 +476,6 @@ static void insertTable(Table *table, char *key, Token *token)
 	table->entryCount++;
 }
 
-/**
- * @brief Searches for a token in the hash table using the given key.
- *
- * This function searches the hash table for an entry with the specified key.
- * If the key is found, the associated token is returned. If the key is not found,
- * the function returns NULL.
- *
- * @param table A pointer to the hash table to search.
- * @param key The key to search for in the hash table.
- * @return A pointer to the token associated with the key, or NULL if the key is not found.
- */
 Token *searchTable(Table *table, char *key)
 {
 	unsigned int index = hash(key, sizeof(table->entries) / sizeof(Entry *));
@@ -541,17 +494,6 @@ Token *searchTable(Table *table, char *key)
 	return NULL;
 }
 
-/**
- * @brief Creates a new Token with the specified attributes.
- *
- * @param type The type of the token.
- * @param name The name of the token.
- * @param word The word associated with the token.
- * @param row The line number where the token is found.
- * @param column The column number where the token is found.
- * @param next A pointer to the next token in the list.
- * @return Token* A pointer to the newly created Token.
- */
 static Token *createToken(TokenType type, char *name, char *word, int row, int column)
 {
 	Token *token = (Token *)malloc(sizeof(Token));

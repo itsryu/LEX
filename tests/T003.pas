@@ -1,5 +1,7 @@
 program T_003;
 
+// ignoring line comments;
+
 var
     x, y, total: real;
 

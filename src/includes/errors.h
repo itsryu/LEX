@@ -1,10 +1,14 @@
 #pragma once
 
+// lexical errors
+#define ERR_UNKOWN_CHARACTER "Lexical error: unknown character '%c' at %d:%d\n"
+#define ERR_STRING_NOT_CLOSED "Lexical error: string not closed at %d:%d\n"
+#define ERR_UNKOWN_STATE "Lexical error: unknown state at %d:%d\n"
+
 // syntax errors
 #define ERR_MEMORY_ALLOCATION_FAILED "Memory allocation failed\n"
 #define ERR_EXPECTED_PROGRAM "Syntax error: expected 'program' at %d:%d\n"
 #define ERR_EXPECTED_IDENTIFIER_AFTER_PROGRAM "Syntax error: expected identifier after 'program' at %d:%d\n"
-#define ERR_EXPECTED_SEMICOLON_AFTER_PROGRAM_IDENTIFIER "Syntax error: expected ';' after program identifier at %d:%d\n"
 #define ERR_EXPECTED_BLOCK_AFTER_PROGRAM_DECLARATION "Syntax error: expected block after program declaration at %d:%d\n"
 #define ERR_EXPECTED_DOT_AFTER_PROGRAM_BLOCK "Syntax error: expected '.' after program block at %d:%d\n"
 #define ERR_EXPECTED_IDENTIFIER_AFTER_VAR "Syntax error: expected identifier after 'var' at %d:%d\n"

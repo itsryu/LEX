@@ -6,5 +6,5 @@ var
 
 begin
     i := 10;
-    s := "teste;
+    s := "teste; // Lexical error: string not closed at 9:17
 end.
