@@ -67,6 +67,6 @@ $$
     \\
     [\text{Identifier}] &\to \text{ident} \\
     \\
-    [\text{Number}] &\to \text{int\lit} \ | \ \text{real\lit}
+    [\text{Number}] &\to {int\\_lit} \ | \ {real\\_lit}
 \end{align}
 $$
