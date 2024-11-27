@@ -9,5 +9,4 @@
 <0, Reserved-word, 'begin'> : <5, 5>
 <3, Identifier, 'x'> : <6, 5>
 <4, Assignment Operator, ':='> : <6, 8>
-<1, Integer value, '12'> : <6, 11>
-LexicalError: Unknown character: '@' at 6:12
+<6, Integer number, '12'> : <6, 11>

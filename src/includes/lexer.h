@@ -90,6 +90,7 @@ typedef struct Entry
     char *key;
     Token *token;
     struct Entry *next;
+    struct Entry *prev;
 } Entry;
 
 /**
@@ -235,3 +236,14 @@ static int isReservedType(const char *word);
  * @return 1 if the word is a reserved operator, 0 otherwise.
  */
 static int isReservedOperator(const char *word);
+
+/**
+ * @brief Checks if a given word is a valid identifier.
+ *
+ * An identifier is considered valid if it starts with an underscore ('_') or a letter (a-z, A-Z),
+ * and is followed by any combination of underscores, letters, or digits (0-9).
+ *
+ * @param word The word to be checked.
+ * @return int Returns 1 if the word is a valid identifier, 0 otherwise.
+ */
+static int isValidIdentifier(const char *word);

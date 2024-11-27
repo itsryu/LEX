@@ -6,6 +6,7 @@
 #include "includes/parser.h"
 
 static void saveFile(Token *token);
+static char *createOutputPath(const char *inputName);
 
 /**
  * @file main.c
@@ -17,7 +18,7 @@ static void saveFile(Token *token);
  * - `--file <file>` or `-f <file>`: Specifies the Pascal file to be analyzed.
  *
  * The program checks for valid arguments and file extensions, opens the specified file,
- * and performs lexical analysis, printing tokens and saving them to an output file.
+ * and performs to analyse it.
  *
  * @param argc The number of command-line arguments.
  * @param argv The array of command-line arguments.
@@ -54,7 +55,9 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-				input = fopen(argv[2], "r");
+				char *inputName = argv[2];
+				char *outputPath = createOutputPath(inputName);
+				input = fopen(inputName, "r");
 
 				if (input == NULL)
 				{
@@ -65,7 +68,7 @@ int main(int argc, char **argv)
 				{
 					Token *token;
 					Table *table = initTable();
-					output = fopen("./output/output.lex", "w");
+					output = fopen(outputPath, "w");
 
 					while ((token = lexerAnalysis(table)) && token->type != ERROR && token->type != END_OF_FILE && token != NULL);
 
@@ -75,18 +78,12 @@ int main(int argc, char **argv)
 
 					while (entry != NULL)
 					{
-						printf("LEX: <%d, %s, '%s'> : <%d, %d>\n", entry->token->type, entry->token->name, entry->token->word, entry->token->row, entry->token->column);
+						printf("<%d, %s, '%s'> : <%d, %d>\n", entry->token->type, entry->token->name, entry->token->word, entry->token->row, entry->token->column);
 						saveFile(entry->token);
 						entry = entry->next;
 					}
 
 					ASTNode *ast = parseTokens(table);
-
-					while(ast != NULL)
-					{
-						printf("AST: <%d, %s>\n", ast->type, ast->value);
-						ast = ast->left;
-					}
 
 					free(table);
 					fclose(input);
@@ -99,14 +96,40 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-/**
- * @brief Saves the token information to the output file.
- *
- * This function writes the details of a given token to the output file in a specific format.
- *
- * @param token A pointer to the Token structure containing the token information.
- */
+
 static void saveFile(Token *token)
 {
 	fprintf(output, "<%d, %s, '%s'> : <%d, %d>\n", token->type, token->name, token->word, token->row, token->column);
+}
+
+static char *createOutputPath(const char *inputName)
+{
+	const char *baseName = strrchr(inputName, '/');
+	baseName = baseName ? baseName + 1 : inputName;
+
+	size_t outputNameLen = strlen(baseName) + 5;
+	char *outputName = malloc(outputNameLen);
+
+	if (outputName == NULL)
+	{
+		return NULL;
+	}
+
+	strcpy(outputName, baseName);
+	strcpy(strrchr(outputName, '.'), ".lex");
+
+	size_t outputPathLen = strlen("./output/") + strlen(outputName) + 1;
+	char *outputPath = malloc(outputPathLen);
+
+	if (outputPath == NULL)
+	{
+		free(outputName);
+		return NULL;
+	}
+
+	strcpy(outputPath, "./output/");
+	strcat(outputPath, outputName);
+
+	free(outputName);
+	return outputPath;
 }

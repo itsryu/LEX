@@ -1,70 +1,72 @@
 $$
 \begin{align}
-    [\text{Programa}] &\to \text{program} \ [\text{Identificador}] \ ; \ [\text{Bloco}] \ . \\
+    [\text{Program}] &\to \text{program} \ [\text{Identifier}] \ ; \ [\text{Block}] \ . \\
     \\
-    [\text{Bloco}] &\to [\text{ParteDeclVar}] \ [\text{ComandoComposto}] \\
+    [\text{Block}] &\to [\text{OptionalVarDeclPart}] \ [\text{CompoundCommand}] \\
     \\
-    [\text{ParteDeclVar}] &\to \{\ \text{var} \ [\text{DeclVar}] \ \{\ ; \ [\text{DeclVar}] \} \ ; \} \\
+    [\text{OptionalVarDeclPart}] &\to \epsilon \ | \ [\text{VarDeclPart}] \\
     \\
-    [\text{DeclVar}] &\to [\text{ListaIdentificadores}] \ : \ [\text{Tipo}] \\
+    [\text{VarDeclPart}] &\to \text{var} \ [\text{VarDecl}] \ \{\ ; \ [\text{VarDecl}] \} \ ; \\
     \\
-    [\text{ListaIdentificadores}] &\to [\text{Identificador}] \ \{\ , \ [\text{Identificador}] \} \\\
+    [\text{VarDecl}] &\to [\text{IdentifierList}] \ : \ [\text{Type}] \\
     \\
-    [\text{Tipo}] &\to \text{integer} \ | \ \text{real} \ | \ \text{sfd} \\
+    [\text{IdentifierList}] &\to [\text{Identifier}] \ \{\ , \ [\text{Identifier}] \} \\
     \\
-    [\text{ComandoComposto}] &\to \text{begin} \ [\text{Comando}] \ ; \ \{\ [\text{Comando}] \ ; \} \ \text{end} \\
+    [\text{Type}] &\to \text{integer} \ | \ \text{real} \ | \ \text{sfd} \\
     \\
-    [\text{Comando}] &\to
+    [\text{CompoundCommand}] &\to \text{begin} \ [\text{OptionalVarDeclPart}] \ [\text{Command}] \ ; \ \{\ [\text{Command}] \ ; \} \ \text{end} \\
+    \\
+    [\text{Command}] &\to
     \begin{cases}
-        [\text{Atribuicao}] \\
-        [\text{ComandoComposto}] \\
-        [\text{ComandoCondicional}] \\
-        [\text{ComandoRepetitivo}]
+        [\text{Assignment}] \\
+        [\text{CompoundCommand}] \\
+        [\text{ConditionalCommand}] \\
+        [\text{RepetitiveCommand}]
     \end{cases} \\
     \\
-    [\text{Atribuicao}] &\to [\text{Variavel}] \ := \ [\text{Expressao}] \\
+    [\text{Assignment}] &\to [\text{Variable}] \ := \ [\text{Expression}] \\
     \\
-    [\text{ComandoCondicional}] &\to \text{if} \ [\text{Expressao}] \ \text{then} \ [\text{Comando}] \ [\text{ElseOpcional}] \\
+    [\text{ConditionalCommand}] &\to \text{if} \ [\text{Expression}] \ \text{then} \ [\text{Command}] \ [\text{OptionalElse}] \\
     \\
-    [\text{ElseOpcional}] &\to
+    [\text{OptionalElse}] &\to
     \begin{cases}
-        \text{else} \ [\text{Comando}] \\
+        \text{else} \ [\text{Command}] \\
         \epsilon
     \end{cases} \\
     \\
-    [\text{ComandoRepetitivo}] &\to \text{while} \ [\text{Expressao}] \ \text{do} \ [\text{Comando}] \\
+    [\text{RepetitiveCommand}] &\to \text{while} \ [\text{Expression}] \ \text{do} \ [\text{Command}] \\
     \\
-    [\text{Expressao}] &\to [\text{ExpressaoSimples}] \ [\text{RelacaoOpcional}] \\
+    [\text{Expression}] &\to [\text{SimpleExpression}] \ [\text{OptionalRelation}] \\
     \\
-    [\text{RelacaoOpcional}] &\to
+    [\text{OptionalRelation}] &\to
     \begin{cases}
-        [\text{Relacao}] \ [\text{ExpressaoSimples}] \\
+        [\text{Relation}] \ [\text{SimpleExpression}] \\
         \epsilon
     \end{cases} \\
     \\
-    [\text{Relacao}] &\to = \ | \ <> \ | \ < \ | \ <= \ | \ >= \ | \ > \\
+    [\text{Relation}] &\to = \ | \ <> \ | \ < \ | \ <= \ | \ >= \ | \ > \\
     \\
-    [\text{ExpressaoSimples}] &\to [\text{SinalOpcional}] \ [\text{Termo}] \ \{\ [\text{OperadorSoma}] \ [\text{Termo}] \} \\
+    [\text{SimpleExpression}] &\to [\text{OptionalSign}] \ [\text{Term}] \ \{\ [\text{AddOperator}] \ [\text{Term}] \} \\
     \\
-    [\text{SinalOpcional}] &\to + \ | \ - \ | \ \epsilon \\
+    [\text{OptionalSign}] &\to + \ | \ - \ | \ \epsilon \\
     \\
-    [\text{OperadorSoma}] &\to + \ | \ - \\ 
+    [\text{AddOperator}] &\to + \ | \ - \\
     \\
-    [\text{Termo}] &\to [\text{Fator}] \ \{\ [\text{OperadorMultiplicacao}] \ [\text{Fator}] \} \\
+    [\text{Term}] &\to [\text{Factor}] \ \{\ [\text{MultiplicationOperator}] \ [\text{Factor}] \} \\
     \\
-    [\text{OperadorMultiplicacao}] &\to * \ | \ / \\
+    [\text{MultiplicationOperator}] &\to * \ | \ / \\
     \\
-    [\text{Fator}] &\to
+    [\text{Factor}] &\to
     \begin{cases}
-        [\text{Variavel}] \\
-        [\text{Numero}] \\
-        ( \ [\text{Expressao}] \ )
+        [\text{Variable}] \\
+        [\text{Number}] \\
+        ( \ [\text{Expression}] \ )
     \end{cases} \\
     \\
-    [\text{Variavel}] &\to [\text{Identificador}] \\
+    [\text{Variable}] &\to [\text{Identifier}] \\
     \\
-    [\text{Identificador}] &\to \text{ident} \\
+    [\text{Identifier}] &\to \text{ident} \\
     \\
-    [\text{Numero}] &\to \text{int\_lit} \ | \ \text{real\_lit}
+    [\text{Number}] &\to \text{int\_lit} \ | \ \text{real\_lit}
 \end{align}
 $$

@@ -4,6 +4,7 @@
 #define ERR_UNKOWN_CHARACTER "Lexical error: unknown character '%c' at %d:%d\n"
 #define ERR_STRING_NOT_CLOSED "Lexical error: string not closed at %d:%d\n"
 #define ERR_UNKOWN_STATE "Lexical error: unknown state at %d:%d\n"
+#define ERR_INVALID_IDENTIFIER "Lexical error: invalid identifier '%s' at %d:%d\n"
 
 // syntax errors
 #define ERR_MEMORY_ALLOCATION_FAILED "Memory allocation failed\n"
@@ -40,5 +41,5 @@
 #define ERR_EXPECTED_EXPRESSION_OR_SEMICOLON "Syntax error: expected expression or ';' at %d:%d\n"
 #define ERR_EXPECTED_EXPRESSION_AFTER_OPEN_PAREN "Syntax error: expected expression after '(' at %d:%d\n"
 #define ERR_EXPECTED_CLOSE_PAREN "Syntax error: expected ')' at %d:%d\n"
-#define ERR_INVALID_FACTOR "Syntax error: invalid factor '%s' at %d:%d\n"
-#define ERR_NO_TOKENS_TO_PARSE "No tokens to parse\n"
+#define ERR_NO_TOKENS_TO_PARSE "Syntax error: No tokens to parse\n"
+#define ERR_UNEXPECTED_TOKEN "Syntax error: Unexpected token '%s' at %d:%d\n"

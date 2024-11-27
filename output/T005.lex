@@ -13,8 +13,7 @@
 <0, Reserved-word, 'begin'> : <7, 5>
 <3, Identifier, 'i'> : <8, 5>
 <4, Assignment Operator, ':='> : <8, 8>
-<1, Integer value, '10'> : <8, 11>
+<6, Integer number, '10'> : <8, 11>
 <5, Symbol, ';'> : <8, 12>
 <3, Identifier, 's'> : <9, 5>
 <4, Assignment Operator, ':='> : <9, 8>
-LexicalError: String not closed at 9:17

@@ -9,17 +9,8 @@
 static int column = 0, row = 1;
 static char ch;
 
-/**
- * @brief Performs lexical analysis on the input and generates tokens.
- *
- * This function reads characters from the input and identifies different types of tokens such as
- * spaces, numeric values, alphanumeric values, symbols, operators, reserved words, identifiers,
- * integer values, real values, relational operators, assignment operators, and strings. It also
- * handles lexical errors and end-of-file conditions.
- *
- * @param table A pointer to the symbol table where tokens will be inserted.
- * @return A pointer to the generated token.
- */
+static void removeWord(char **word, int *size);
+
 Token *lexerAnalysis(Table *table)
 {
 	char *word = (char *)malloc(sizeof(char));
@@ -37,36 +28,13 @@ Token *lexerAnalysis(Table *table)
 		case 0:
 		{
 			// identyfing spaces, tabs, new lines and comments:
-			if (ch == SPACE || ch == TAB || ch == NEW_LINE || ch == '/')
+			if (ch == SPACE || ch == TAB || ch == NEW_LINE)
 			{
 				if (ch == NEW_LINE)
 				{
 					row++;
 					column = 0;
-				}
-
-				if (ch == '/')
-				{
-					ch = fgetc(input);
-					column++;
-
-					if (ch == '/')
-					{
-						while ((ch = fgetc(input)) != EOF && ch != NEW_LINE)
-						{
-							column++;
-						}
-						if (ch == NEW_LINE)
-						{
-							row++;
-							column = 0;
-						}
-					}
-					else
-					{
-						ungetc(ch, input);
-						column--;
-					}
+					break;
 				}
 
 				break;
@@ -120,6 +88,19 @@ Token *lexerAnalysis(Table *table)
 
 				if (ch == OP_SUM || ch == OP_SUB || ch == OP_DIV || ch == OP_MUL)
 				{
+					if(ch == OP_DIV && (ch = fgetc(input)) == OP_DIV)
+					{
+						removeWord(&word, &size);
+						
+						while ((ch = fgetc(input)) != NEW_LINE)
+						{
+							column++;
+						}
+						row++;
+						column = 0;
+						break;
+					}
+
 					Token *token = createToken(OPERATOR, "Binary Arithmetic Operator", word, row, column);
 					insertTable(table, word, token);
 					return token;
@@ -150,6 +131,12 @@ Token *lexerAnalysis(Table *table)
 			{
 				ungetc(ch, input);
 				column--;
+
+				if (!isValidIdentifier(word))
+				{
+					fprintf(stderr, ERR_INVALID_IDENTIFIER, word, row, column);
+					return NULL;
+				}
 
 				if (isReservedWord(word))
 				{
@@ -192,6 +179,12 @@ Token *lexerAnalysis(Table *table)
 			{
 				addWord(&word, &size, ch);
 				state = 3;
+			}
+			else if (ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch == SMB_UNDER)
+			{
+				addWord(&word, &size, ch);
+				fprintf(stderr, ERR_INVALID_IDENTIFIER, word, row, column);
+				return NULL;
 			}
 			else
 			{
@@ -352,6 +345,26 @@ static void addWord(char **word, int *size, const char ch)
 	(*word)[*size] = '\0';
 }
 
+static void removeWord(char **word, int *size)
+{
+	*word = (char *)realloc(*word, sizeof(char) * (*size));
+	(*word)[(*size)--] = '\0';
+}
+
+static int isValidIdentifier(const char *word)
+{
+	if (word == NULL || !(word[0] == '_' || (word[0] >= 'a' && word[0] <= 'z') || (word[0] >= 'A' && word[0] <= 'Z')))
+		return 0;
+
+	for (int i = 1; word[i] != '\0'; i++)
+	{
+		if (!(word[i] == '_' || (word[i] >= 'a' && word[i] <= 'z') || (word[i] >= 'A' && word[i] <= 'Z') || (word[i] >= '0' && word[i] <= '9')))
+			return 0;
+	}
+
+	return 1;
+}
+
 static int isReservedWord(const char *word)
 {
 	if (word == NULL)
@@ -458,6 +471,7 @@ static void insertTable(Table *table, char *key, Token *token)
 	entry->key = key;
 	entry->token = token;
 	entry->next = NULL;
+	entry->prev = NULL;
 
 	if (table->entries[index] == NULL)
 	{
@@ -471,6 +485,7 @@ static void insertTable(Table *table, char *key, Token *token)
 			current = current->next;
 		}
 		current->next = entry;
+		entry->prev = current;
 	}
 
 	table->entryCount++;

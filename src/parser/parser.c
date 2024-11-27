@@ -7,8 +7,6 @@
 #include "../includes/errors.h"
 #include "../includes/tokens.h"
 
-static int isValidNumber(const char *str);
-
 ASTNode *createNode(int type, char *value)
 {
     ASTNode *node = (ASTNode *)malloc(sizeof(ASTNode));
@@ -31,7 +29,8 @@ void freeNode(ASTNode *node)
 {
     if (node)
     {
-        if (node->value) {
+        if (node->value)
+        {
             free(node->value);
         }
 
@@ -43,14 +42,26 @@ void freeNode(ASTNode *node)
 
 static int isValidNumber(const char *str)
 {
-    if (*str == END_OF_STRING)
+    int hasDecimalPoint = 0;
+
+    if (*str == '\0')
         return 0;
+
     while (*str)
     {
-        if ((*str < '0' || *str > '9') && *str != SMB_DOT)
+        if (*str == '.')
+        {
+            if (hasDecimalPoint)
+                return 0;
+            hasDecimalPoint = 1;
+        }
+        else if (*str < '0' || *str > '9')
+        {
             return 0;
+        }
         str++;
     }
+
     return 1;
 }
 
@@ -87,13 +98,6 @@ ASTNode *parseConditional(Table *table, Entry **currentEntry)
         exit(EXIT_FAILURE);
     }
 
-    if (entry->next == NULL)
-    {
-        fprintf(stderr, ERR_EXPECTED_STATEMENT_AFTER_THEN, entry->token->row, entry->token->column);
-        freeNode(ifNode);
-        exit(EXIT_FAILURE);
-    }
-
     *currentEntry = entry->next;
     entry = *currentEntry;
 
@@ -103,13 +107,6 @@ ASTNode *parseConditional(Table *table, Entry **currentEntry)
 
     if (entry && entry->token->type == RESERVED_WORD && strcmp(entry->token->word, RESERVED_WORD_ELSE) == 0)
     {
-        if (entry->next == NULL)
-        {
-            fprintf(stderr, ERR_EXPECTED_STATEMENT_AFTER_ELSE, entry->token->row, entry->token->column);
-            freeNode(ifNode);
-            exit(EXIT_FAILURE);
-        }
-
         *currentEntry = entry->next;
         entry = *currentEntry;
 
@@ -205,6 +202,7 @@ ASTNode *parseFactor(Table *table, Entry **currentEntry)
         if (entry->next == NULL)
         {
             fprintf(stderr, ERR_EXPECTED_EXPRESSION_AFTER_OPEN_PAREN, entry->token->row, entry->token->column);
+            freeNode(factorNode);
             exit(EXIT_FAILURE);
         }
 
@@ -212,28 +210,32 @@ ASTNode *parseFactor(Table *table, Entry **currentEntry)
         factorNode = parseExpression(table, currentEntry);
         entry = *currentEntry;
 
-        if (entry && strcmp(entry->token->word, SYMBOL_CPA) == 0)
+        if (strcmp(entry->token->word, SYMBOL_OPA) == 0)
         {
-            if (entry->next == NULL)
-            {
-                fprintf(stderr, ERR_EXPECTED_EXPRESSION_OR_SEMICOLON, entry->token->row, entry->token->column);
-                freeNode(factorNode);
-                exit(EXIT_FAILURE);
-            }
-
+            factorNode = parseExpression(table, currentEntry);
             *currentEntry = entry->next;
             entry = *currentEntry;
         }
-        else
+
+        if (entry == NULL || strcmp(entry->token->word, SYMBOL_CPA) != 0)
         {
             fprintf(stderr, ERR_EXPECTED_CLOSE_PAREN, entry->token->row, entry->token->column);
             freeNode(factorNode);
             exit(EXIT_FAILURE);
         }
+
+        if (entry->next == NULL)
+        {
+            fprintf(stderr, ERR_EXPECTED_EXPRESSION_OR_SEMICOLON, entry->token->row, entry->token->column);
+            freeNode(factorNode);
+            exit(EXIT_FAILURE);
+        }
+
+        *currentEntry = entry->next;
     }
     else
     {
-        fprintf(stderr, ERR_INVALID_FACTOR, entry->token->word, entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_UNEXPECTED_TOKEN, entry->token->word, entry->token->row, entry->token->column);
         exit(EXIT_FAILURE);
     }
 
@@ -245,7 +247,7 @@ ASTNode *parseTerm(Table *table, Entry **currentEntry)
     ASTNode *termNode = parseFactor(table, currentEntry);
     Entry *entry = *currentEntry;
 
-    while (entry && (strcmp(entry->token->word, OPERATOR_MUL) == 0 || strcmp(entry->token->word, OPERATOR_MUL) == 0))
+    while (entry && (strcmp(entry->token->word, OPERATOR_MUL) == 0 || strcmp(entry->token->word, OPERATOR_DIV) == 0))
     {
         ASTNode *operatorNode = createNode(entry->token->type, entry->token->word);
 
@@ -258,14 +260,7 @@ ASTNode *parseTerm(Table *table, Entry **currentEntry)
         }
 
         *currentEntry = entry->next;
-
-        if (*currentEntry == NULL)
-        {
-            fprintf(stderr, ERR_EXPECTED_FACTOR_AFTER_OPERATOR, entry->token->word, entry->token->row, entry->token->column);
-            freeNode(termNode);
-            freeNode(operatorNode);
-            exit(EXIT_FAILURE);
-        }
+        entry = *currentEntry;
 
         ASTNode *rightFactor = parseFactor(table, currentEntry);
 
@@ -342,7 +337,9 @@ ASTNode *parseExpression(Table *table, Entry **currentEntry)
 
     if (entry && (strcmp(entry->token->word, "=") == 0 || strcmp(entry->token->word, "<>") == 0 ||
                   strcmp(entry->token->word, "<") == 0 || strcmp(entry->token->word, "<=") == 0 ||
-                  strcmp(entry->token->word, ">") == 0 || strcmp(entry->token->word, ">=") == 0))
+                  strcmp(entry->token->word, ">") == 0 || strcmp(entry->token->word, ">=") == 0 ||
+                  strcmp(entry->token->word, "and") == 0 || strcmp(entry->token->word, "or") == 0 ||
+                  strcmp(entry->token->word, "not") == 0))
     {
         ASTNode *relationNode = createNode(entry->token->type, entry->token->word);
 
@@ -356,14 +353,6 @@ ASTNode *parseExpression(Table *table, Entry **currentEntry)
 
         *currentEntry = entry->next;
         entry = *currentEntry;
-
-        if (entry == NULL)
-        {
-            fprintf(stderr, ERR_EXPECTED_EXPRESSION_AFTER_OPERATOR, entry->token->word, entry->token->row, entry->token->column);
-            freeNode(expressionNode);
-            freeNode(relationNode);
-            exit(EXIT_FAILURE);
-        }
 
         ASTNode *rightExprNode = parseSimpleExpression(table, currentEntry);
         relationNode->left = expressionNode;
@@ -428,7 +417,7 @@ ASTNode *parseAssignment(Table *table, Entry **currentEntry)
 
     if (entry == NULL || strcmp(entry->token->word, SYMBOL_SEM) != 0)
     {
-        fprintf(stderr, ERR_EXPECTED_SEMICOLON, entry->token->row, entry->token->column);
+        fprintf(stderr, ERR_UNEXPECTED_TOKEN, entry->token->word, entry->token->row, entry->token->column);
         freeNode(assignmentNode);
         exit(EXIT_FAILURE);
     }
@@ -461,11 +450,6 @@ ASTNode *parseStatement(Table *table, Entry **currentEntry)
     else if (entry->token->type == RESERVED_WORD && strcmp(entry->token->word, RESERVED_WORD_WHILE) == 0)
     {
         return parseRepetitive(table, currentEntry);
-    }
-    else
-    {
-        fprintf(stderr, ERR_INVALID_COMMAND, entry->token->word, entry->token->row, entry->token->column);
-        exit(EXIT_FAILURE);
     }
 }
 
